@@ -6,6 +6,11 @@ import { AuthContext } from '../context/Authcontext';
 import { FontAwesome } from '@expo/vector-icons';
 import EstadoConductor from '../components/EstadoConductor';
 import { darkMapStyle } from '../../constants/MapStyles';
+import {API_URL} from '@env';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+
+
 
 const estados = [
     { nombre: 'Activo', color: 'green' },
@@ -20,6 +25,33 @@ const TrackerScreen = () => {
     const [loading, setLoading] = useState(true);
     const [estadoActual, setEstadoActual] = useState('Activo');
     const theme = useColorScheme();
+
+  useEffect(() => {
+    const socket = new SockJS('http://192.168.0.33:8080/ws'); // Asegúrate de que esté accesible desde el dispositivo físico
+    const stompClient = new Client({
+        webSocketFactory: () => socket,
+        debug: (str) => console.log('[STOMP]', str),
+        reconnectDelay: 5000, // Reintento automático cada 5 segundos
+        onConnect: () => {
+            console.log('📡 Conectado al WebSocket');
+            stompClient.subscribe('/topic/servicios', (messageOutput) => {
+                const nuevoServicio = JSON.parse(messageOutput.body);
+                console.log("📍 Servicio recibido:", nuevoServicio);
+                
+            });
+        },
+        onStompError: (frame) => {
+            console.error('💥 Error STOMP:', frame.headers['message']);
+            console.error('Detalles:', frame.body);
+        },
+    });
+
+    stompClient.activate(); // Importante para iniciar la conexión
+
+    return () => {
+        stompClient.deactivate(); // Limpia cuando el componente se desmonta
+    };
+}, []);
 
     useEffect(() => {
         (async () => {
@@ -40,6 +72,35 @@ const TrackerScreen = () => {
             }
         })();
     }, []);
+
+    // Actualiza la ubicación cada 10 segundos
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            if (location) {
+                const response = await fetch(`${API_URL}/conductor/actualizarUbicacionConductor`, {
+                    method: 'PUT', // Usar PUT para actualizar
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        idConductor: user?.dni, // Asegúrate de tener el ID del conductor
+                        latitud: location.latitude,
+                        longitud: location.longitude,
+                    }),
+                });
+
+                if (response.ok) {
+                    console.log("idconductor: ", user.dni);
+                    console.log('Ubicación enviada correctamente');
+                } else {
+                    console.error('Error enviando ubicación');
+                }
+            }
+        }, 10000); // 5000 ms = 5 segundos
+
+        return () => clearInterval(interval); // Limpiar interval cuando el componente se desmonta
+    }, [location, user]);
+
 
     const iconColor = estados.find(e => e.nombre === estadoActual)?.color || 'gray';
 

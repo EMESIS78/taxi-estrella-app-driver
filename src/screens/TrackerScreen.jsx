@@ -23,6 +23,7 @@ const TrackerScreen = () => {
     const [loading, setLoading] = useState(true);
     const [estadoActual, setEstadoActual] = useState('Activo');
     const theme = useColorScheme();
+    const estado = estadoActual;
 
 useEffect(() => {
     const socket = new SockJS('http://192.168.0.33:8080/ws'); // Asegúrate de que esté accesible desde el dispositivo físico
@@ -82,7 +83,7 @@ useEffect(() => {
                     },
                     body: JSON.stringify({
                         idConductor: user?.dni, // Asegúrate de tener el ID del conductor
-                        estado: estadoActual,
+                        estado: estado,
                         unidad: user?.unidad,
                         latitud: location.latitude,
                         longitud: location.longitude,
@@ -98,7 +99,7 @@ useEffect(() => {
                     console.error('Error enviando ubicación');
                 }
             }
-        }, 10000); // 5000 ms = 5 segundos
+        }, 8000); // 5000 ms = 5 segundos
 
         return () => clearInterval(interval); // Limpiar interval cuando el componente se desmonta
     }, [location, user, estadoActual]);

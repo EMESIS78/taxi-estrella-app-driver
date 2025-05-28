@@ -39,6 +39,7 @@ const EstadoConductor = ({ onEstadoChange }) => {
             const result = isJson ? await response.json() : await response.text();
 
             if (response.ok) {
+                console.log("Estado actualizado")
                 onEstadoChange(estado);
             } else {
                 console.error('⚠️ Error al actualizar estado:', result);

@@ -50,7 +50,7 @@ const EstadoConductor = ({ onEstadoChange }) => {
 
     return (
         <View style={styles.panel}>
-            <Text style={styles.title}>Estado del Conductor</Text>
+            <Text style={styles.title}>Mi Estado</Text>
             <View style={styles.buttonContainer}>
                 {estados.map(({ nombre, color, icon }) => (
                     <TouchableOpacity
@@ -70,7 +70,7 @@ const EstadoConductor = ({ onEstadoChange }) => {
 const styles = StyleSheet.create({
     panel: {
         position: 'absolute',
-        bottom: 10,
+        bottom: 50,
         left: 10,
         right: 10,
         backgroundColor: '#fff',

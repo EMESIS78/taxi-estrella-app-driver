@@ -10,8 +10,6 @@ import {API_URL} from '@env';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
-
-
 const estados = [
     { nombre: 'Activo', color: 'green' },
     { nombre: 'Ocupado', color: 'red' },
@@ -26,7 +24,7 @@ const TrackerScreen = () => {
     const [estadoActual, setEstadoActual] = useState('Activo');
     const theme = useColorScheme();
 
-  useEffect(() => {
+useEffect(() => {
     const socket = new SockJS('http://192.168.0.33:8080/ws'); // Asegúrate de que esté accesible desde el dispositivo físico
     const stompClient = new Client({
         webSocketFactory: () => socket,
@@ -84,6 +82,8 @@ const TrackerScreen = () => {
                     },
                     body: JSON.stringify({
                         idConductor: user?.dni, // Asegúrate de tener el ID del conductor
+                        estado: estadoActual,
+                        unidad: user?.unidad,
                         latitud: location.latitude,
                         longitud: location.longitude,
                     }),
@@ -91,6 +91,8 @@ const TrackerScreen = () => {
 
                 if (response.ok) {
                     console.log("idconductor: ", user.dni);
+                    console.log("estado: ", estadoActual);
+                    console.log("unidad: ", user.unidad);
                     console.log('Ubicación enviada correctamente');
                 } else {
                     console.error('Error enviando ubicación');
@@ -99,7 +101,7 @@ const TrackerScreen = () => {
         }, 10000); // 5000 ms = 5 segundos
 
         return () => clearInterval(interval); // Limpiar interval cuando el componente se desmonta
-    }, [location, user]);
+    }, [location, user, estadoActual]);
 
 
     const iconColor = estados.find(e => e.nombre === estadoActual)?.color || 'gray';

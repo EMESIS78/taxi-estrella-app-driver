@@ -27,7 +27,7 @@ const estados = [
 const EstadoConductor = ({ onEstadoChange }) => {
     const { user } = useContext(AuthContext);
     const [visible, setVisible] = useState(true);
-    const heightAnim = useRef(new Animated.Value(1)).current; // 1: visible, 0: colapsado
+    const heightAnim = useRef(new Animated.Value(1)).current;
 
     const togglePanel = () => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -55,7 +55,7 @@ const EstadoConductor = ({ onEstadoChange }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idConductor: parseInt(user.dni, 10), estado }),
             });
-
+            console.log(`Estado actualizado a: ${estado}`);
             onEstadoChange(estado);
         } catch (err) {
             console.error('Error al actualizar estado:', err);

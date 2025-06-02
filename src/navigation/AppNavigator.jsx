@@ -13,8 +13,13 @@ const Drawer = createDrawerNavigator();
 
 const CustomDrawerContent = ({ navigation }) => {
     const { user, logout } = useContext(AuthContext);
-    const backgroundColor = useThemeColor({}, 'background');
-    const textColor = useThemeColor({}, 'text');
+    const scheme = useColorScheme();
+
+    const backgroundColor = scheme === 'dark' ? '#2c3e50' : '#0076a7';
+    const textColor = scheme === 'dark' ? '#ecf0f1' : '#ffffff';
+    const logo = scheme === 'dark'
+        ? require('../Public/icons/logo3copy.png')  // <-- tu logo para fondo oscuro
+        : require('../Public/icons/logo4.png'); // <-- tu logo para fondo claro
 
     const handleLogout = () => {
         logout();
@@ -23,13 +28,16 @@ const CustomDrawerContent = ({ navigation }) => {
     return (
         <DrawerContentScrollView contentContainerStyle={[styles.drawerContainer, { backgroundColor }]}>
             <View style={styles.profileSection}>
-                <Image source={{ uri: 'https://i.pravatar.cc/100' }} style={styles.avatar} />
+                <Image source={logo} style={styles.avatar} resizeMode="contain" />
                 <Text style={[styles.name, { color: textColor }]}>{user?.nombre}</Text>
                 <Text style={[styles.dni, { color: textColor }]}>DNI: {user?.dni}</Text>
             </View>
 
-            <DrawerItem label="Monitoreo" onPress={() => navigation.navigate('Monitoreo')} labelStyle={[styles.drawerLabel, { color: textColor }]} />
-            <DrawerItem label="Mis Carreras" onPress={() => navigation.navigate('MisCarreras')} labelStyle={[styles.drawerLabel, { color: textColor }]} />
+            <DrawerItem
+                label="Monitoreo"
+                onPress={() => navigation.navigate('Monitoreo')}
+                labelStyle={[styles.drawerLabel, { color: textColor }]}
+            />
 
             <View style={styles.logoutContainer}>
                 <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -42,6 +50,10 @@ const CustomDrawerContent = ({ navigation }) => {
 
 const AppNavigator = () => {
     const { user } = useContext(AuthContext);
+    const scheme = useColorScheme();
+
+    const headerBackground = scheme === 'dark' ? '#2c3e50' : '#0076a7';
+    const headerTextColor = scheme === 'dark' ? '#ecf0f1' : '#ffffff';
 
     return (
         <NavigationContainer>
@@ -49,9 +61,14 @@ const AppNavigator = () => {
                 <Drawer.Navigator
                     initialRouteName="Monitoreo"
                     drawerContent={(props) => <CustomDrawerContent {...props} />}
+                    screenOptions={{
+                        headerStyle: { backgroundColor: headerBackground },
+                        headerTintColor: headerTextColor,
+                        headerTitleStyle: { fontWeight: 'bold' },
+                    }}
                 >
                     <Drawer.Screen name="Monitoreo" component={TrackerScreen} />
-                    <Drawer.Screen name="MisCarreras" component={MisCarrerasScreen} />
+                    {/* <Drawer.Screen name="MisCarreras" component={MisCarrerasScreen} /> */}
                 </Drawer.Navigator>
             ) : (
                 <LoginScreen />
@@ -64,13 +81,12 @@ const styles = StyleSheet.create({
     drawerContainer: { flex: 1 },
     profileSection: {
         alignItems: 'center',
-        paddingVertical: 20,
+        paddingVertical: 25,
         marginBottom: 20,
     },
     avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 100,
+        height: 100,
         marginBottom: 10,
     },
     name: {

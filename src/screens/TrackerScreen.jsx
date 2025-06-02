@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, useColorScheme, TouchableOpacity, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme, ActivityIndicator, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { AuthContext } from '../context/Authcontext';
+import { API_URL } from '@env';
 import { FontAwesome } from '@expo/vector-icons';
 import { useLiveLocation } from '../hooks/useLiveLocation';
 import { useServicioSocket } from '../hooks/useServicioSocket';
@@ -15,8 +16,10 @@ import AlertaServicio from '../components/AlertaServicio';
 const TrackerScreen = () => {
     const { user } = useContext(AuthContext);
     const [estadoActual, setEstadoActual] = useState('Activo');
+    const [servicioActivo, setServicioActivo] = useState(null);
     const [nuevoServicio, setNuevoServicio] = useState(null);
     const [rutaACamino, setRutaACamino] = useState([]);
+    const theme = useColorScheme();
     const [rutaServicio, setRutaServicio] = useState([]);
     const [partidaCoords, setPartidaCoords] = useState(null);
     const [destinoCoords, setDestinoCoords] = useState(null);
@@ -44,6 +47,23 @@ const TrackerScreen = () => {
 
     const aceptarServicio = async () => {
         try {
+            const response = await fetch(`${API_URL}/conductor/tomarServicioWeb`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idRegistro: nuevoServicio.idServicio,
+                    idConductor: user?.dni,
+                    estadoInforme: 'Aceptado',
+                }),
+            });
+
+            if (!response.ok) {
+                console.error('❌ Error al aceptar el servicio');
+                return;
+            }
+
             const partida = await geocodeAddress(nuevoServicio.puntoPartida);
             const destino = await geocodeAddress(nuevoServicio.puntoLlegada);
             setPartidaCoords(partida);
@@ -56,11 +76,69 @@ const TrackerScreen = () => {
             setRutaServicio(ruta2);
 
             setMostrarBotonRuta(true);
+            setServicioActivo(nuevoServicio);
         } catch (err) {
-            console.error(err);
+            console.error('❌ Error procesando el servicio:', err);
         } finally {
             setNuevoServicio(null);
         }
+    };
+
+    const finalizarServicio = async () => {
+        if (!servicioActivo) return;
+        try {
+            const response = await fetch(`${API_URL}/servicio/finalizarServicio`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    idRegistro: servicioActivo.idServicio,
+                    idConductor: user?.dni,
+                    estadoInforme: 'Finalizado',
+                }),
+            });
+
+            if (response.ok) {
+                resetServicio();
+                console.log('🚗 Servicio finalizado con éxito');
+            } else {
+                console.error('❌ Error finalizando el servicio');
+            }
+        } catch (error) {
+            console.error('❌ Error en la solicitud:', error);
+        }
+    };
+
+    const cancelarServicio = async () => {
+        if (!servicioActivo) return;
+        try {
+            const response = await fetch(`${API_URL}/servicio/cancelarServicio`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    idRegistro: servicioActivo.idServicio,
+                    idConductor: user?.dni,
+                    estadoInforme: 'Cancelado',
+                }),
+            });
+
+            if (response.ok) {
+                resetServicio();
+                console.log('🚫 Servicio cancelado con éxito');
+            } else {
+                console.error('❌ Error cancelando el servicio');
+            }
+        } catch (error) {
+            console.error('❌ Error en la solicitud:', error);
+        }
+    };
+
+    const resetServicio = () => {
+        setRutaACamino([]);
+        setRutaServicio([]);
+        setPartidaCoords(null);
+        setDestinoCoords(null);
+        setMostrarBotonRuta(false);
+        setServicioActivo(null);
     };
 
     const iconColor = {
@@ -72,7 +150,7 @@ const TrackerScreen = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.welcome}>Hola, {user?.nombre}</Text>
+            {/* <Text style={styles.welcome}>Hola, {user?.nombre}</Text> */}
             {loading ? (
                 <ActivityIndicator size="large" />
             ) : (
@@ -84,7 +162,7 @@ const TrackerScreen = () => {
                         latitudeDelta: 0.01,
                         longitudeDelta: 0.01,
                     }}
-                    customMapStyle={darkMapStyle}
+                    customMapStyle={theme === 'dark' ? darkMapStyle : []}
                     showsMyLocationButton
                 >
                     <Marker coordinate={location}>
@@ -96,14 +174,30 @@ const TrackerScreen = () => {
                     {rutaServicio.length > 0 && <Polyline coordinates={rutaServicio} strokeColor="#f39c12" strokeWidth={4} />}
                 </MapView>
             )}
-
+            {servicioActivo && (
+                <View style={styles.infoCliente}>
+                    <Text style={styles.clienteText}>🚖 Cliente: {servicioActivo.nombreCliente}</Text>
+                    <Text style={styles.clienteText}>📞 Celular: {servicioActivo.celular}</Text>
+                </View>
+            )}
             {mostrarBotonRuta && (
                 <View style={styles.botonesFlotantes}>
-                    <TouchableOpacity onPress={iniciarRutaAPartida} style={styles.botonSecundario}>
-                        <Text style={styles.botonTexto}>Ruta a la Partida</Text>
+                    <TouchableOpacity onPress={iniciarRutaAPartida} style={styles.botonCompactoAzul}>
+                        <Text style={styles.botonTextoChico}>Iniciar Ruta Partida</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={iniciarRutaAlDestino} style={styles.botonNavegar}>
-                        <Text style={styles.botonTexto}>Ruta al Destino</Text>
+                    <TouchableOpacity onPress={iniciarRutaAlDestino} style={styles.botonCompactoMorado}>
+                        <Text style={styles.botonTextoChico}>Iniciar Ruta Destino</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {servicioActivo && (
+                <View style={styles.botonesFlotantesServicio}>
+                    <TouchableOpacity onPress={finalizarServicio} style={styles.botonCompactoVerde}>
+                        <Text style={styles.botonTextoChico}>✔ Completado</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={cancelarServicio} style={styles.botonCompactoRojo}>
+                        <Text style={styles.botonTextoChico}>✖ Cancelar</Text>
                     </TouchableOpacity>
                 </View>
             )}
@@ -117,31 +211,80 @@ const TrackerScreen = () => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     welcome: { textAlign: 'center', marginTop: 20, fontSize: 16 },
-    map: { flex: 1, marginTop: 10 },
-    botonNavegar: {
-        backgroundColor: '#2ecc71',
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    botonTexto: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    botonSecundario: {
-        backgroundColor: '#3498db',
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    botonesFlotantes: {
+    infoCliente: {
         position: 'absolute',
-        bottom: 200, // justo arriba del EstadoConductor
+        top: 10,
         left: 20,
         right: 20,
+        backgroundColor: '#ecf0f1',
+        padding: 10,
+        borderRadius: 8,
+        zIndex: 15,
+    },
+    clienteText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#2c3e50',
+    },
+    map: { flex: 1 },
+    botonesFlotantes: {
+        position: 'absolute',
+        bottom: 300,
+        left: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        flexDirection: 'grid',
+        justifyContent: 'space-between',
         zIndex: 10,
-        gap: 10,
+    },
+
+    botonesFlotantesServicio: {
+        position: 'absolute',
+        bottom: 190,
+        left: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        flexDirection: 'grid',
+        justifyContent: 'space-between',
+        zIndex: 10,
+    },
+
+    botonCompactoAzul: {
+        backgroundColor: '#3498db',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        alignItems: 'center',
+    },
+
+    botonCompactoVerde: {
+        backgroundColor: '#2ecc71',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        alignItems: 'center',
+    },
+
+    botonCompactoMorado: {
+        backgroundColor: 'purple',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        alignItems: 'center',
+    },
+
+    botonCompactoRojo: {
+        backgroundColor: '#e74c3c',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        alignItems: 'center',
+    },
+
+    botonTextoChico: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
 });
 

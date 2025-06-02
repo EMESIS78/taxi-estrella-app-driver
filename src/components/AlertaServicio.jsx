@@ -7,6 +7,9 @@ const AlertaServicio = ({ servicio, onClose, onAceptar }) => {
     return (
         <View style={styles.alertContainer}>
             <Text style={styles.title}>📢 Nuevo Servicio</Text>
+            <Text style={{ display: 'none' }}>
+                <Text style={styles.label}>id:</Text> {servicio.idServicio}
+            </Text>
             <Text><Text style={styles.label}>Cliente:</Text> {servicio.nombreCliente}</Text>
             <Text><Text style={styles.label}>Celular:</Text> {servicio.celular}</Text>
             <Text><Text style={styles.label}>Partida:</Text> {servicio.puntoPartida}</Text>

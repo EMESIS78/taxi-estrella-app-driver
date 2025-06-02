@@ -13,6 +13,7 @@ export const useServicioSocket = (location, setNuevoServicio) => {
             onConnect: () => {
                 stompClient.subscribe('/topic/servicios', async ({ body }) => {
                     const servicio = JSON.parse(body);
+                    console.log("📍 Servicio recibido:", servicio);
                     try {
                         const partidaCoords = await geocodeAddress(servicio.puntoPartida);
                         const distancia = calcularDistanciaKm(location, partidaCoords);

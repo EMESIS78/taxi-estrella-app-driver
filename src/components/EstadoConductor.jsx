@@ -8,6 +8,7 @@ import {
     LayoutAnimation,
     Platform,
     UIManager,
+    useColorScheme,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { API_URL } from '@env';
@@ -28,20 +29,25 @@ const EstadoConductor = ({ onEstadoChange }) => {
     const { user } = useContext(AuthContext);
     const [visible, setVisible] = useState(true);
     const heightAnim = useRef(new Animated.Value(1)).current;
+    const scheme = useColorScheme();
+
+    const fondoPanel = scheme === 'dark' ? '#2c3e50' : '#0076a7';
+    const fondoToggle = scheme === 'dark' ? '#34495e' : '#0076a7';
+    const colorTexto = scheme === 'dark' ? '#ecf0f1' : '#ffffff';
 
     const togglePanel = () => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         Animated.timing(heightAnim, {
             toValue: visible ? 0 : 1,
             duration: 300,
-            useNativeDriver: false, // Necesario para height
+            useNativeDriver: false,
         }).start();
         setVisible(!visible);
     };
 
     const panelHeight = heightAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, 130], // Altura final del panel visible
+        outputRange: [0, 130],
     });
 
     const opacity = heightAnim;
@@ -64,14 +70,12 @@ const EstadoConductor = ({ onEstadoChange }) => {
 
     return (
         <>
-            {/* Toggle */}
-            <TouchableOpacity onPress={togglePanel} style={styles.toggleButton}>
-                <FontAwesome name={visible ? 'angle-down' : 'angle-up'} size={28} color="#333" />
+            <TouchableOpacity onPress={togglePanel} style={[styles.toggleButton, { backgroundColor: fondoToggle }]}>
+                <FontAwesome name={visible ? 'angle-down' : 'angle-up'} size={28} color="white" />
             </TouchableOpacity>
 
-            {/* Panel animado */}
-            <Animated.View style={[styles.panel, { height: panelHeight, opacity }]}>
-                <Text style={styles.title}>Mi Estado</Text>
+            <Animated.View style={[styles.panel, { height: panelHeight, opacity, backgroundColor: fondoPanel }]}>
+                <Text style={[styles.title, { color: colorTexto }]}>Mi Estado</Text>
                 <View style={styles.buttonContainer}>
                     {estados.map(({ nombre, color, icon }) => (
                         <TouchableOpacity
@@ -94,7 +98,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 50,
         alignSelf: 'center',
-        backgroundColor: '#fff',
         padding: 10,
         borderRadius: 20,
         elevation: 5,
@@ -105,9 +108,8 @@ const styles = StyleSheet.create({
         bottom: 60,
         left: 10,
         right: 10,
-        backgroundColor: '#fff',
         borderRadius: 10,
-        overflow: 'hidden', // Esto oculta el contenido cuando se colapsa
+        overflow: 'hidden',
         padding: 10,
     },
     title: {

@@ -1,5 +1,14 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+    View,
+    Text,
+    TextInput,
+    Alert,
+    StyleSheet,
+    TouchableOpacity,
+    Image,
+    useColorScheme,
+} from 'react-native';
 import { API_URL } from '@env';
 import { AuthContext } from '../context/Authcontext';
 
@@ -7,6 +16,15 @@ const LoginScreen = () => {
     const [dni, setDni] = useState('');
     const [password, setPassword] = useState('');
     const { login } = useContext(AuthContext);
+    const scheme = useColorScheme();
+
+    const fondo = scheme === 'dark' ? '#2c3e50' : '#0076a7';
+    const texto = scheme === 'dark' ? '#ecf0f1' : '#ffffff';
+    const inputBg = scheme === 'dark' ? '#34495e' : '#f9fafb';
+    const inputBorder = scheme === 'dark' ? '#95a5a6' : '#cbd5e1';
+    const logo = scheme === 'dark'
+        ? require('../Public/icons/logo3copy.png')
+        : require('../Public/icons/logo4.png');
 
     const handleLogin = async () => {
         if (!dni || !password) {
@@ -37,7 +55,7 @@ const LoginScreen = () => {
                 return;
             }
 
-            login(data); // ← Actualiza el contexto global y redirige
+            login(data);
         } catch (error) {
             console.error(error);
             Alert.alert('Error de conexión', 'No se pudo iniciar sesión. Intenta nuevamente.');
@@ -45,28 +63,33 @@ const LoginScreen = () => {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: fondo }]}>
+            <View style={styles.logoContainer}>
+                <Image source={logo} style={styles.logo} resizeMode="contain" />
+            </View>
             <View style={styles.card}>
-                <Text style={styles.cardTitle}>Iniciar Sesión</Text>
-                <Text style={styles.cardDescription}>
+                <Text style={[styles.cardTitle, { color: texto }]}>Iniciar Sesión</Text>
+                <Text style={[styles.cardDescription, { color: texto }]}>
                     Ingresa tu DNI y contraseña para acceder como conductor
                 </Text>
 
                 <View style={styles.form}>
-                    <Text style={styles.label}>DNI</Text>
+                    <Text style={[styles.label, { color: texto }]}>DNI</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { backgroundColor: inputBg, borderColor: inputBorder, color: texto }]}
                         keyboardType="numeric"
                         placeholder="Ej. 12345678"
+                        placeholderTextColor={scheme === 'dark' ? '#bdc3c7' : '#6b7280'}
                         value={dni}
                         onChangeText={setDni}
                     />
 
-                    <Text style={styles.label}>Contraseña</Text>
+                    <Text style={[styles.label, { color: texto }]}>Contraseña</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { backgroundColor: inputBg, borderColor: inputBorder, color: texto }]}
                         secureTextEntry
                         placeholder="Tu contraseña"
+                        placeholderTextColor={scheme === 'dark' ? '#bdc3c7' : '#6b7280'}
                         value={password}
                         onChangeText={setPassword}
                     />
@@ -85,29 +108,30 @@ export default LoginScreen;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#eef1f5',
         justifyContent: 'center',
         padding: 20,
     },
+    logoContainer: {
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    logo: {
+        width: 200,
+        height: 150,
+    },
     card: {
-        backgroundColor: '#fff',
         borderRadius: 16,
         padding: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
         elevation: 6,
     },
     cardTitle: {
         fontSize: 26,
         fontWeight: 'bold',
         textAlign: 'center',
-        color: '#2c3e50',
         marginBottom: 6,
     },
     cardDescription: {
         fontSize: 14,
-        color: '#6b7280',
         textAlign: 'center',
         marginBottom: 24,
     },
@@ -116,13 +140,10 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 14,
-        color: '#374151',
         marginBottom: 4,
     },
     input: {
         borderWidth: 1,
-        borderColor: '#cbd5e1',
-        backgroundColor: '#f9fafb',
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 10,

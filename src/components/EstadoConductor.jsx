@@ -1,4 +1,4 @@
-import React, { useContext, useRef, useState } from 'react';
+import React, { useContext, useRef, useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -13,6 +13,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { API_URL } from '@env';
 import { AuthContext } from '../context/Authcontext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -28,12 +29,25 @@ const estados = [
 const EstadoConductor = ({ onEstadoChange }) => {
     const { user } = useContext(AuthContext);
     const [visible, setVisible] = useState(true);
+    const [estadoActual, setEstadoActual] = useState(null);
     const heightAnim = useRef(new Animated.Value(1)).current;
     const scheme = useColorScheme();
 
     const fondoPanel = scheme === 'dark' ? '#2c3e50' : '#0076a7';
     const fondoToggle = scheme === 'dark' ? '#34495e' : '#0076a7';
     const colorTexto = scheme === 'dark' ? '#ecf0f1' : '#ffffff';
+
+        useEffect(() => {
+        // Cargar estado guardado al iniciar
+        const cargarEstado = async () => {
+            const guardado = await AsyncStorage.getItem('estadoConductor');
+            if (guardado) {
+                setEstadoActual(guardado);
+                onEstadoChange(guardado); // comunicarlo al padre
+            }
+        };
+        cargarEstado();
+    }, []);
 
     const togglePanel = () => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -62,7 +76,9 @@ const EstadoConductor = ({ onEstadoChange }) => {
                 body: JSON.stringify({ idConductor: parseInt(user.dni, 10), estado }),
             });
             console.log(`Estado actualizado a: ${estado}`);
+            setEstadoActual(estado);
             onEstadoChange(estado);
+            await AsyncStorage.setItem('estadoConductor', estado);
         } catch (err) {
             console.error('Error al actualizar estado:', err);
         }

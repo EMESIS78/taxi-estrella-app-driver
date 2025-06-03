@@ -12,6 +12,7 @@ import { elegirAppNavegacion } from '../utils/navigationUtils';
 import EstadoConductor from '../components/EstadoConductor';
 import { darkMapStyle } from '../../constants/MapStyles';
 import AlertaServicio from '../components/AlertaServicio';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TrackerScreen = () => {
     const { user } = useContext(AuthContext);
@@ -77,12 +78,40 @@ const TrackerScreen = () => {
 
             setMostrarBotonRuta(true);
             setServicioActivo(nuevoServicio);
+
+            await AsyncStorage.setItem('servicioActivo', JSON.stringify(nuevoServicio));
         } catch (err) {
             console.error('❌ Error procesando el servicio:', err);
         } finally {
             setNuevoServicio(null);
         }
     };
+
+    useEffect(() => {
+        const restaurarServicio = async () => {
+            const guardado = await AsyncStorage.getItem('servicioActivo');
+            if (guardado) {
+                const servicio = JSON.parse(guardado);
+                setServicioActivo(servicio);
+
+                const partida = await geocodeAddress(servicio.puntoPartida);
+                const destino = await geocodeAddress(servicio.puntoLlegada);
+                setPartidaCoords(partida);
+                setDestinoCoords(destino);
+
+                const ruta1 = await getRutaGoogleMaps(location, partida);
+                const ruta2 = await getRutaGoogleMaps(partida, destino);
+
+                setRutaACamino(ruta1);
+                setRutaServicio(ruta2);
+                setMostrarBotonRuta(true);
+            }
+        };
+
+        if (location) {
+            restaurarServicio();
+        }
+    }, [location]);
 
     const finalizarServicio = async () => {
         if (!servicioActivo) return;
@@ -132,13 +161,15 @@ const TrackerScreen = () => {
         }
     };
 
-    const resetServicio = () => {
+    const resetServicio = async () => {
         setRutaACamino([]);
         setRutaServicio([]);
         setPartidaCoords(null);
         setDestinoCoords(null);
         setMostrarBotonRuta(false);
         setServicioActivo(null);
+
+        await AsyncStorage.removeItem('servicioActivo');
     };
 
     const iconColor = {

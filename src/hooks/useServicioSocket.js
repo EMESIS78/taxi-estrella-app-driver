@@ -2,10 +2,11 @@ import { useEffect } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { geocodeAddress, calcularDistanciaKm } from '../utils/geolocation';
+import { API_URL } from '@env';
 
 export const useServicioSocket = (location, setNuevoServicio) => {
     useEffect(() => {
-        const socket = new SockJS('http://192.168.0.86:8080/ws');
+        const socket = new SockJS(`${API_URL}/ws`);
         const stompClient = new Client({
             webSocketFactory: () => socket,
             debug: str => console.log('[STOMP]', str),

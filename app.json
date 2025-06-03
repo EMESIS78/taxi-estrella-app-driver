@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "taxi-estrella-app-driver",
+    "name": "Estrellas Tours Driver",
     "slug": "taxi-estrella-app-driver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logoApp1.png",
     "scheme": "taxiestrellaappdriver",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logoApp1.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -24,7 +24,8 @@
         "googleMaps": {
           "apiKey": "AIzaSyCZqHbNMMzl9ODmkN1Hb8nqk8sFsOj6Arg"
         }
-      }
+      },
+      "package": "com.fabrixcio1107.taxiestrellaappdriver"
     },
     "web": {
       "bundler": "metro",
@@ -45,6 +46,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fc5c22c3-0b62-4b80-9d08-223ef7df1267"
+      }
     }
   }
 }

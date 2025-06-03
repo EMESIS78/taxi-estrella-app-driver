@@ -38,7 +38,6 @@ const EstadoConductor = ({ onEstadoChange }) => {
     const colorTexto = scheme === 'dark' ? '#ecf0f1' : '#ffffff';
 
         useEffect(() => {
-        // Cargar estado guardado al iniciar
         const cargarEstado = async () => {
             const guardado = await AsyncStorage.getItem('estadoConductor');
             if (guardado) {

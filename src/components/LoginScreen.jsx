@@ -18,10 +18,12 @@ const LoginScreen = () => {
     const { login } = useContext(AuthContext);
     const scheme = useColorScheme();
 
+    const fondo2 = scheme === 'dark' ? '#007667' : '#dedede';
     const fondo = scheme === 'dark' ? '#2c3e50' : '#0076a7';
     const texto = scheme === 'dark' ? '#ecf0f1' : '#000000';
     const inputBg = scheme === 'dark' ? '#34495e' : '#f9fafb';
-    const inputBorder = scheme === 'dark' ? '#95a5a6' : '#cbd5e1';
+    const inputBorder = scheme === 'dark' ? '#95a5a6' : '#050505';
+    const buttonColor = scheme === 'dark' ? '#2563eb' : '#fba257';
     const logo = scheme === 'dark'
         ? require('../Public/icons/logo3copy.png')
         : require('../Public/icons/logo4.png');
@@ -71,11 +73,11 @@ const LoginScreen = () => {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: fondo }]}>
-            <View style={styles.logoContainer}>
+        <View style={[styles.container, { backgroundColor: fondo2 }]}>
+            <View style={[styles.card, { backgroundColor: fondo }]}>
+                <View style={styles.logoContainer}>
                 <Image source={logo} style={styles.logo} resizeMode="contain" />
             </View>
-            <View style={styles.card}>
                 <Text style={[styles.cardTitle, { color: texto }]}>Iniciar Sesión</Text>
                 <Text style={[styles.cardDescription, { color: texto }]}>
                     Ingresa tu DNI y contraseña para acceder como conductor
@@ -96,13 +98,14 @@ const LoginScreen = () => {
                     <TextInput
                         style={[styles.input, { backgroundColor: inputBg, borderColor: inputBorder, color: texto }]}
                         secureTextEntry
+                        keyboardType="numeric"
                         placeholder="Tu contraseña"
                         placeholderTextColor={scheme === 'dark' ? '#bdc3c7' : '#6b7280'}
                         value={password}
                         onChangeText={setPassword}
                     />
 
-                    <TouchableOpacity style={styles.button} onPress={handleLogin}>
+                    <TouchableOpacity style={[styles.button, { backgroundColor: buttonColor }]} onPress={handleLogin}>
                         <Text style={styles.buttonText}>Ingresar</Text>
                     </TouchableOpacity>
                 </View>
@@ -147,6 +150,7 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     label: {
+        fontWeight: 'bold',
         fontSize: 14,
         marginBottom: 4,
     },

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
     View,
     Text,
@@ -19,7 +19,7 @@ const LoginScreen = () => {
     const scheme = useColorScheme();
 
     const fondo = scheme === 'dark' ? '#2c3e50' : '#0076a7';
-    const texto = scheme === 'dark' ? '#ecf0f1' : '#ffffff';
+    const texto = scheme === 'dark' ? '#ecf0f1' : '#000000';
     const inputBg = scheme === 'dark' ? '#34495e' : '#f9fafb';
     const inputBorder = scheme === 'dark' ? '#95a5a6' : '#cbd5e1';
     const logo = scheme === 'dark'
@@ -45,13 +45,21 @@ const LoginScreen = () => {
             });
 
             if (!res.ok) {
+                const errorText = await res.text();
+                console.error('Error de login:', res.status, errorText);
                 throw new Error('Respuesta no válida');
             }
 
             const data = await res.json();
+            console.log('Respuesta del login:', data);
 
             if (data?.rol !== 'Conductor') {
                 Alert.alert('Acceso restringido', 'Solo los conductores pueden iniciar sesión.');
+                return;
+            }
+
+            if (!data?.habilitado) {
+                Alert.alert('Acceso denegado', 'Su usuario fue inhabilitado.');
                 return;
             }
 

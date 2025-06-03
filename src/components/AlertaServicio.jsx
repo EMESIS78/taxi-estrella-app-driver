@@ -1,7 +1,25 @@
-import React from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Audio } from 'expo-av';
 
 const AlertaServicio = ({ servicio, onClose, onAceptar }) => {
+    useEffect(() => {
+        if (servicio) {
+            reproducirSonido();
+        }
+    }, [servicio]);
+
+    const reproducirSonido = async () => {
+        try {
+            const { sound } = await Audio.Sound.createAsync(
+                require('../../assets/sounds/alert.mp3')
+            );
+            await sound.playAsync();
+        } catch (error) {
+            console.log('Error al reproducir el sonido:', error);
+        }
+    };
+
     if (!servicio) return null;
 
     return (

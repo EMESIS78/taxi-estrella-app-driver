@@ -1,7 +1,7 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
-import { View, Text, Image, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, useColorScheme, Alert } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import TrackerScreen from '../screens/TrackerScreen';
 import MisCarrerasScreen from '../screens/MisCarrerasScreen';
@@ -15,6 +15,7 @@ const CustomDrawerContent = ({ navigation }) => {
     const { user, logout } = useContext(AuthContext);
     const scheme = useColorScheme();
 
+
     const backgroundColor = scheme === 'dark' ? '#2c3e50' : '#0076a7';
     const textColor = scheme === 'dark' ? '#ecf0f1' : '#ffffff';
     const logo = scheme === 'dark'
@@ -24,6 +25,8 @@ const CustomDrawerContent = ({ navigation }) => {
     const handleLogout = () => {
         logout();
     };
+
+
 
     return (
         <DrawerContentScrollView contentContainerStyle={[styles.drawerContainer, { backgroundColor }]}>
@@ -51,9 +54,15 @@ const CustomDrawerContent = ({ navigation }) => {
 const AppNavigator = () => {
     const { user } = useContext(AuthContext);
     const scheme = useColorScheme();
-
+    const [loading, setLoading] = useState(true);
     const headerBackground = scheme === 'dark' ? '#2c3e50' : '#0076a7';
     const headerTextColor = scheme === 'dark' ? '#ecf0f1' : '#ffffff';
+
+    useEffect(() => {
+        if (user === null && !loading) {
+            Alert.alert('Acceso denegado', 'Tu cuenta ha sido deshabilitada.');
+        }
+    }, [user, loading]);
 
     return (
         <NavigationContainer>

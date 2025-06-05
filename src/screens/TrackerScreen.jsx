@@ -1,91 +1,51 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, useColorScheme, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import React, { useEffect, useState, useContext, useRef } from 'react';
+import { View, useColorScheme, ActivityIndicator } from 'react-native';
 import { AuthContext } from '../context/Authcontext';
 import { API_URL } from '@env';
-import { FontAwesome } from '@expo/vector-icons';
 import { useLiveLocation } from '../hooks/useLiveLocation';
 import { useServicioSocket } from '../hooks/useServicioSocket';
 import useEnviarUbicacionConductor from '../hooks/useEnviarUbicacionConductor';
 import { geocodeAddress, getRutaGoogleMaps } from '../utils/geolocation';
 import { elegirAppNavegacion } from '../utils/navigationUtils';
 import EstadoConductor from '../components/EstadoConductor';
-import { darkMapStyle } from '../../constants/MapStyles';
 import AlertaServicio from '../components/AlertaServicio';
+import Mapa from '../components/Mapa';
+import ControlesServicio from '../components/ControlesServicio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useKeepAwake } from 'expo-keep-awake';
+import { useIsFocused } from '@react-navigation/native';
+import { useDrawerStatus } from '@react-navigation/drawer';
 
 const TrackerScreen = () => {
+    useKeepAwake();
     const { user } = useContext(AuthContext);
     const [estadoActual, setEstadoActual] = useState('Activo');
     const [servicioActivo, setServicioActivo] = useState(null);
     const [nuevoServicio, setNuevoServicio] = useState(null);
     const [rutaACamino, setRutaACamino] = useState([]);
-    const theme = useColorScheme();
     const [rutaServicio, setRutaServicio] = useState([]);
     const [partidaCoords, setPartidaCoords] = useState(null);
     const [destinoCoords, setDestinoCoords] = useState(null);
     const [mostrarBotonRuta, setMostrarBotonRuta] = useState(false);
+    const isFocused = useIsFocused();
 
+    const theme = useColorScheme();
+    const mapRef = useRef(null);
     const { location, loading } = useLiveLocation();
+
     useServicioSocket(location, setNuevoServicio);
     useEnviarUbicacionConductor({ location, user, estado: estadoActual });
 
-    const iniciarRutaAPartida = () => {
-        if (location && partidaCoords) {
-            const origin = `${location.latitude},${location.longitude}`;
-            const destination = `${partidaCoords.latitude},${partidaCoords.longitude}`;
-            elegirAppNavegacion(origin, destination);
+    useEffect(() => {
+        if (location && mapRef.current) {
+            mapRef.current.animateToRegion({
+                latitude: location.latitude,
+                longitude: location.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+            }, 1000);
         }
-    };
-
-    const iniciarRutaAlDestino = () => {
-        if (partidaCoords && destinoCoords) {
-            const origin = `${partidaCoords.latitude},${partidaCoords.longitude}`;
-            const destination = `${destinoCoords.latitude},${destinoCoords.longitude}`;
-            elegirAppNavegacion(origin, destination);
-        }
-    };
-
-    const aceptarServicio = async () => {
-        try {
-            const response = await fetch(`${API_URL}/conductor/tomarServicioWeb`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    idRegistro: nuevoServicio.idServicio,
-                    idConductor: user?.dni,
-                    estadoInforme: 'Aceptado',
-                }),
-            });
-
-            if (!response.ok) {
-                console.error('❌ Error al aceptar el servicio');
-                return;
-            }
-
-            const partida = await geocodeAddress(nuevoServicio.puntoPartida);
-            const destino = await geocodeAddress(nuevoServicio.puntoLlegada);
-            setPartidaCoords(partida);
-            setDestinoCoords(destino);
-
-            const ruta1 = await getRutaGoogleMaps(location, partida);
-            setRutaACamino(ruta1);
-
-            const ruta2 = await getRutaGoogleMaps(partida, destino);
-            setRutaServicio(ruta2);
-
-            setMostrarBotonRuta(true);
-            setServicioActivo(nuevoServicio);
-
-            await AsyncStorage.setItem('servicioActivo', JSON.stringify(nuevoServicio));
-        } catch (err) {
-            console.error('❌ Error procesando el servicio:', err);
-        } finally {
-            setNuevoServicio(null);
-        }
-    };
+    }, [location]);
 
     useEffect(() => {
         const restaurarServicio = async () => {
@@ -113,6 +73,38 @@ const TrackerScreen = () => {
         }
     }, [location]);
 
+    const aceptarServicio = async () => {
+        try {
+            const response = await fetch(`${API_URL}/conductor/tomarServicioWeb`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    idRegistro: nuevoServicio.idServicio,
+                    idConductor: user?.dni,
+                    estadoInforme: 'Aceptado',
+                }),
+            });
+
+            if (!response.ok) return;
+
+            const partida = await geocodeAddress(nuevoServicio.puntoPartida);
+            const destino = await geocodeAddress(nuevoServicio.puntoLlegada);
+
+            setPartidaCoords(partida);
+            setDestinoCoords(destino);
+            setRutaACamino(await getRutaGoogleMaps(location, partida));
+            setRutaServicio(await getRutaGoogleMaps(partida, destino));
+
+            setMostrarBotonRuta(true);
+            setServicioActivo(nuevoServicio);
+            await AsyncStorage.setItem('servicioActivo', JSON.stringify(nuevoServicio));
+        } catch (err) {
+            console.error('Error al aceptar servicio:', err);
+        } finally {
+            setNuevoServicio(null);
+        }
+    };
+
     const finalizarServicio = async () => {
         if (!servicioActivo) return;
         try {
@@ -126,14 +118,9 @@ const TrackerScreen = () => {
                 }),
             });
 
-            if (response.ok) {
-                resetServicio();
-                console.log('🚗 Servicio finalizado con éxito');
-            } else {
-                console.error('❌ Error finalizando el servicio');
-            }
-        } catch (error) {
-            console.error('❌ Error en la solicitud:', error);
+            if (response.ok) resetServicio();
+        } catch (err) {
+            console.error('Error finalizando servicio:', err);
         }
     };
 
@@ -150,14 +137,9 @@ const TrackerScreen = () => {
                 }),
             });
 
-            if (response.ok) {
-                resetServicio();
-                console.log('🚫 Servicio cancelado con éxito');
-            } else {
-                console.error('❌ Error cancelando el servicio');
-            }
-        } catch (error) {
-            console.error('❌ Error en la solicitud:', error);
+            if (response.ok) resetServicio();
+        } catch (err) {
+            console.error('Error cancelando servicio:', err);
         }
     };
 
@@ -168,7 +150,6 @@ const TrackerScreen = () => {
         setDestinoCoords(null);
         setMostrarBotonRuta(false);
         setServicioActivo(null);
-
         await AsyncStorage.removeItem('servicioActivo');
     };
 
@@ -179,144 +160,43 @@ const TrackerScreen = () => {
         ServicioPeligro: 'orange',
     }[estadoActual] || 'gray';
 
+    const isDrawerOpen = useDrawerStatus() === 'open';
     return (
-        <View style={styles.container}>
-            {/* <Text style={styles.welcome}>Hola, {user?.nombre}</Text> */}
-            {loading ? (
+        <View style={{ flex: 1 }}>
+            {!isFocused || loading || !location || !theme ? (
                 <ActivityIndicator size="large" />
             ) : (
-                <MapView
-                    style={styles.map}
-                    initialRegion={{
-                        latitude: location.latitude,
-                        longitude: location.longitude,
-                        latitudeDelta: 0.01,
-                        longitudeDelta: 0.01,
-                    }}
-                    customMapStyle={theme === 'dark' ? darkMapStyle : []}
-                    showsMyLocationButton
-                >
-                    <Marker coordinate={location}>
-                        <FontAwesome name="car" size={36} color={iconColor} />
-                    </Marker>
-                    {partidaCoords && <Marker coordinate={partidaCoords} pinColor="blue" />}
-                    {destinoCoords && <Marker coordinate={destinoCoords} pinColor="green" />}
-                    {rutaACamino.length > 0 && <Polyline coordinates={rutaACamino} strokeColor="#2980b9" strokeWidth={4} />}
-                    {rutaServicio.length > 0 && <Polyline coordinates={rutaServicio} strokeColor="#f39c12" strokeWidth={4} />}
-                </MapView>
-            )}
-            {servicioActivo && (
-                <View style={styles.infoCliente}>
-                    <Text style={styles.clienteText}>🚖 Cliente: {servicioActivo.nombreCliente}</Text>
-                    <Text style={styles.clienteText}>📞 Celular: {servicioActivo.celular}</Text>
-                </View>
-            )}
-            {mostrarBotonRuta && (
-                <View style={styles.botonesFlotantes}>
-                    <TouchableOpacity onPress={iniciarRutaAPartida} style={styles.botonCompactoAzul}>
-                        <Text style={styles.botonTextoChico}>Iniciar Ruta Partida</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={iniciarRutaAlDestino} style={styles.botonCompactoMorado}>
-                        <Text style={styles.botonTextoChico}>Iniciar Ruta Destino</Text>
-                    </TouchableOpacity>
-                </View>
+                <Mapa
+                    location={location}
+                    mapRef={mapRef}
+                    darkMode={theme === 'dark'}
+                    iconColor={iconColor}
+                    rutaACamino={rutaACamino}
+                    rutaServicio={rutaServicio}
+                    partidaCoords={partidaCoords}
+                    destinoCoords={destinoCoords}
+                />
             )}
 
-            {servicioActivo && (
-                <View style={styles.botonesFlotantesServicio}>
-                    <TouchableOpacity onPress={finalizarServicio} style={styles.botonCompactoVerde}>
-                        <Text style={styles.botonTextoChico}>✔ Completado</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={cancelarServicio} style={styles.botonCompactoRojo}>
-                        <Text style={styles.botonTextoChico}>✖ Cancelar</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
+            <ControlesServicio
+                servicioActivo={servicioActivo}
+                onFinalizar={finalizarServicio}
+                onCancelar={cancelarServicio}
+                mostrarBotonRuta={mostrarBotonRuta}
+                iniciarRutaAPartida={() => elegirAppNavegacion(
+                    `${location.latitude},${location.longitude}`,
+                    `${partidaCoords?.latitude},${partidaCoords?.longitude}`
+                )}
+                iniciarRutaAlDestino={() => elegirAppNavegacion(
+                    `${partidaCoords?.latitude},${partidaCoords?.longitude}`,
+                    `${destinoCoords?.latitude},${destinoCoords?.longitude}`
+                )}
+            />
 
             <EstadoConductor onEstadoChange={setEstadoActual} />
             <AlertaServicio servicio={nuevoServicio} onClose={() => setNuevoServicio(null)} onAceptar={aceptarServicio} />
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    welcome: { textAlign: 'center', marginTop: 20, fontSize: 16 },
-    infoCliente: {
-        position: 'absolute',
-        top: 10,
-        left: 20,
-        right: 20,
-        backgroundColor: '#ecf0f1',
-        padding: 10,
-        borderRadius: 8,
-        zIndex: 15,
-    },
-    clienteText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#2c3e50',
-    },
-    map: { flex: 1 },
-    botonesFlotantes: {
-        position: 'absolute',
-        bottom: 300,
-        left: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 10,
-        flexDirection: 'grid',
-        justifyContent: 'space-between',
-        zIndex: 10,
-    },
-
-    botonesFlotantesServicio: {
-        position: 'absolute',
-        bottom: 190,
-        left: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 10,
-        flexDirection: 'grid',
-        justifyContent: 'space-between',
-        zIndex: 10,
-    },
-
-    botonCompactoAzul: {
-        backgroundColor: '#3498db',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        alignItems: 'center',
-    },
-
-    botonCompactoVerde: {
-        backgroundColor: '#2ecc71',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        alignItems: 'center',
-    },
-
-    botonCompactoMorado: {
-        backgroundColor: 'purple',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        alignItems: 'center',
-    },
-
-    botonCompactoRojo: {
-        backgroundColor: '#e74c3c',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        alignItems: 'center',
-    },
-
-    botonTextoChico: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-});
 
 export default TrackerScreen;

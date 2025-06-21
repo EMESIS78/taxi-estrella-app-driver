@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
 import { View, useColorScheme, ActivityIndicator } from 'react-native';
 import { AuthContext } from '../context/Authcontext';
-import { API_URL } from '@env';
+import { API_URL } from '../config/env';
 import { useLiveLocation } from '../hooks/useLiveLocation';
 import { useServicioSocket } from '../hooks/useServicioSocket';
 import useEnviarUbicacionConductor from '../hooks/useEnviarUbicacionConductor';

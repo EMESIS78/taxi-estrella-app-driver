@@ -1,6 +1,6 @@
 // components/ControlesServicio.jsx
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert } from 'react-native';
 
 const ControlesServicio = ({
     servicioActivo,
@@ -10,14 +10,27 @@ const ControlesServicio = ({
     iniciarRutaAPartida,
     iniciarRutaAlDestino,
 }) => {
+    const llamarCliente = () => {
+        if (servicioActivo?.celular) {
+            const phoneNumber = `tel:${servicioActivo.celular}`;
+            Linking.openURL(phoneNumber).catch(err =>
+                Alert.alert('Error', 'No se pudo iniciar la llamada.')
+            );
+        }
+    };
+
     return (
         <>
             {servicioActivo && (
                 <View style={styles.infoCliente}>
                     <Text style={styles.clienteText}>🚖 Cliente: {servicioActivo.nombreCliente}</Text>
                     <Text style={styles.clienteText}>📞 Celular: {servicioActivo.celular}</Text>
+                    <TouchableOpacity onPress={llamarCliente} style={styles.botonLlamar}>
+                        <Text style={styles.botonTextoChico}>📞 Llamar</Text>
+                    </TouchableOpacity>
                 </View>
             )}
+
             {mostrarBotonRuta && (
                 <View style={styles.botonesFlotantes}>
                     <TouchableOpacity onPress={iniciarRutaAPartida} style={styles.botonCompactoAzul}>
@@ -28,6 +41,7 @@ const ControlesServicio = ({
                     </TouchableOpacity>
                 </View>
             )}
+
             {servicioActivo && (
                 <View style={styles.botonesFlotantesServicio}>
                     <TouchableOpacity onPress={onFinalizar} style={styles.botonCompactoVerde}>
@@ -57,6 +71,14 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
         marginVertical: 2,
+    },
+    botonLlamar: {
+        marginTop: 6,
+        backgroundColor: '#1abc9c',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 6,
+        alignSelf: 'flex-start',
     },
     botonesFlotantes: {
         position: 'absolute',

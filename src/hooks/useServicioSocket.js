@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { geocodeAddress, calcularDistanciaKm } from '../utils/geolocation';
-import { API_URL } from '@env';
+import { API_URL } from '../config/env';
 
 export const useServicioSocket = (location, setNuevoServicio) => {
     useEffect(() => {

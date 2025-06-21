@@ -9,7 +9,7 @@ import {
     Image,
     useColorScheme,
 } from 'react-native';
-import { API_URL } from '@env';
+import { API_URL } from '../config/env';
 import { AuthContext } from '../context/Authcontext';
 
 const LoginScreen = () => {
@@ -35,13 +35,13 @@ const LoginScreen = () => {
         }
 
         try {
-            const res = await fetch(`${API_URL}/usuario/Login`, {
+            const res = await fetch(`${API_URL}/conductor/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    usuario: Number(dni),
+                    dni: Number(dni),
                     password: password,
                 }),
             });
@@ -65,7 +65,7 @@ const LoginScreen = () => {
                 return;
             }
 
-            login(data);
+            login(data); // Esto se mantiene igual, el AuthContext debe usar el objeto completo
         } catch (error) {
             console.error(error);
             Alert.alert('Error de conexión', 'No se pudo iniciar sesión. Intenta nuevamente.');
@@ -76,8 +76,8 @@ const LoginScreen = () => {
         <View style={[styles.container, { backgroundColor: fondo2 }]}>
             <View style={[styles.card, { backgroundColor: fondo }]}>
                 <View style={styles.logoContainer}>
-                <Image source={logo} style={styles.logo} resizeMode="contain" />
-            </View>
+                    <Image source={logo} style={styles.logo} resizeMode="contain" />
+                </View>
                 <Text style={[styles.cardTitle, { color: texto }]}>Iniciar Sesión</Text>
                 <Text style={[styles.cardDescription, { color: texto }]}>
                     Ingresa tu DNI y contraseña para acceder como conductor

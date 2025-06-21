@@ -1,5 +1,5 @@
 import Geocoder from 'react-native-geocoding';
-import { GOOGLE_API_KEY } from '@env';
+import { GOOGLE_API_KEY } from '../config/env';
 import polyline from '@mapbox/polyline';
 
 Geocoder.init(GOOGLE_API_KEY);

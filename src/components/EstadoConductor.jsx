@@ -11,7 +11,7 @@ import {
     useColorScheme,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { API_URL } from '@env';
+import { API_URL } from '../config/env';
 import { AuthContext } from '../context/Authcontext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

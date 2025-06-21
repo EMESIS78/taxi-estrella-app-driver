@@ -4,7 +4,7 @@
     "slug": "taxi-estrella-app-driver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logoApp1.png",
+    "icon": "./assets/images/LOGOAPPICON.png",
     "scheme": "taxiestrellaappdriver",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logoApp1.png",
+        "foregroundImage": "./assets/images/LOGOAPPICON.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

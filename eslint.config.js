@@ -6,5 +6,18 @@ module.exports = defineConfig([
   expoConfig,
   {
     ignores: ['dist/*'],
+    root: true,
+    extends: ['eslint-config-expo'],
+    plugins: ['import'],
+    settings: {
+        'import/resolver': {
+            alias: {
+                map: [
+                    ['@env', './path/to/your/env/file'], // ⚠️ No importa el path real, es simbólico
+                ],
+                extensions: ['.js', '.jsx', '.ts', '.tsx'],
+            },
+        },
+    },
   },
 ]);

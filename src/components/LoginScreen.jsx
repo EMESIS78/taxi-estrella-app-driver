@@ -9,7 +9,7 @@ import {
     Image,
     useColorScheme,
 } from 'react-native';
-import { API_URL } from '../config/env';
+import { API_URL } from '@env';
 import { AuthContext } from '../context/Authcontext';
 
 const LoginScreen = () => {

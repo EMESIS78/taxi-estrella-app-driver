@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useIsFocused } from '@react-navigation/native';
 import { useDrawerStatus } from '@react-navigation/drawer';
+import { useDistancias } from '../hooks/useDistancias';
 
 const TrackerScreen = () => {
     useKeepAwake();
@@ -31,21 +32,10 @@ const TrackerScreen = () => {
 
     const theme = useColorScheme();
     const mapRef = useRef(null);
-    const { location, loading } = useLiveLocation();
+    const { location, loading, heading } = useLiveLocation();
 
     useServicioSocket(location, setNuevoServicio);
     useEnviarUbicacionConductor({ location, user, estado: estadoActual });
-
-    useEffect(() => {
-        if (location && mapRef.current) {
-            mapRef.current.animateToRegion({
-                latitude: location.latitude,
-                longitude: location.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-            }, 1000);
-        }
-    }, [location]);
 
     useEffect(() => {
         const restaurarServicio = async () => {
@@ -153,6 +143,25 @@ const TrackerScreen = () => {
         await AsyncStorage.removeItem('servicioActivo');
     };
 
+    const { distanciaAPartida, distanciaADestino } = useDistancias(
+        location,
+        partidaCoords,
+        destinoCoords,
+        mostrarBotonRuta // Este es tu "navegacionActiva"
+    );
+
+    useEffect(() => {
+        if (distanciaAPartida !== null && distanciaAPartida <= 0.05 && rutaACamino.length > 0) {
+            console.log('🧹 Llegó al punto de partida, limpiando rutaACamino');
+            setRutaACamino([]);
+        }
+
+        if (distanciaADestino !== null && distanciaADestino <= 0.05 && rutaServicio.length > 0) {
+            console.log('🧹 Llegó al punto de destino, limpiando rutaServicio');
+            setRutaServicio([]);
+        }
+    }, [distanciaAPartida, distanciaADestino]);
+
     const iconColor = {
         Activo: 'green',
         Ocupado: 'red',
@@ -168,6 +177,7 @@ const TrackerScreen = () => {
             ) : (
                 <Mapa
                     location={location}
+                    heading={heading}
                     mapRef={mapRef}
                     darkMode={theme === 'dark'}
                     iconColor={iconColor}

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
+import { calcularBearing } from '../utils/geolocation';
 
 export const useLiveLocation = () => {
     const [location, setLocation] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [previousLocation, setPreviousLocation] = useState(null);
+    const [heading, setHeading] = useState(0);
 
     useEffect(() => {
         let subscription;
@@ -17,17 +20,26 @@ export const useLiveLocation = () => {
             }
 
             try {
+
                 subscription = await Location.watchPositionAsync(
                     {
                         accuracy: Location.Accuracy.High,
-                        timeInterval: 2000, // cada 2 segundos
-                        distanceInterval: 5, // o cada 5 metros
+                        timeInterval: 2000,
+                        distanceInterval: 5,
                     },
                     (loc) => {
-                        setLocation({
+                        const newLocation = {
                             latitude: loc.coords.latitude,
                             longitude: loc.coords.longitude,
-                        });
+                        };
+
+                        if (previousLocation) {
+                            const bearing = calcularBearing(previousLocation, newLocation);
+                            setHeading(bearing);
+                        }
+
+                        setLocation(newLocation);
+                        setPreviousLocation(newLocation);
                     }
                 );
             } catch (err) {
@@ -44,5 +56,5 @@ export const useLiveLocation = () => {
         };
     }, []);
 
-    return { location, loading };
+    return { location, loading, heading };
 };

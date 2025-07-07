@@ -34,10 +34,10 @@ const ControlesServicio = ({
             {mostrarBotonRuta && (
                 <View style={styles.botonesFlotantes}>
                     <TouchableOpacity onPress={iniciarRutaAPartida} style={styles.botonCompactoAzul}>
-                        <Text style={styles.botonTextoChico}>Iniciar Ruta Partida</Text>
+                        <Text style={styles.botonTextoChico}>Navegar Ruta Partida Con</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={iniciarRutaAlDestino} style={styles.botonCompactoMorado}>
-                        <Text style={styles.botonTextoChico}>Iniciar Ruta Destino</Text>
+                        <Text style={styles.botonTextoChico}>Navegar Ruta Destino Con</Text>
                     </TouchableOpacity>
                 </View>
             )}

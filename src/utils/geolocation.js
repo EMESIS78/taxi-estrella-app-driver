@@ -1,5 +1,5 @@
 import Geocoder from 'react-native-geocoding';
-import { GOOGLE_API_KEY } from '../config/env';
+import { GOOGLE_API_KEY } from '@env';
 import polyline from '@mapbox/polyline';
 
 Geocoder.init(GOOGLE_API_KEY);
@@ -30,3 +30,19 @@ export const getRutaGoogleMaps = async (origen, destino) => {
     const points = polyline.decode(data.routes[0].overview_polyline.points);
     return points.map(([lat, lng]) => ({ latitude: lat, longitude: lng }));
 };
+
+export const calcularBearing = (origen, destino) => {
+    const startLat = origen.latitude * Math.PI / 180;
+    const startLng = origen.longitude * Math.PI / 180;
+    const endLat = destino.latitude * Math.PI / 180;
+    const endLng = destino.longitude * Math.PI / 180;
+
+    const y = Math.sin(endLng - startLng) * Math.cos(endLat);
+    const x = Math.cos(startLat) * Math.sin(endLat) -
+              Math.sin(startLat) * Math.cos(endLat) * Math.cos(endLng - startLng);
+
+    let bearing = Math.atan2(y, x) * (180 / Math.PI);
+    bearing = (bearing + 360) % 360;  // Ajuste entre 0 y 360 grados
+    return bearing;
+};
+

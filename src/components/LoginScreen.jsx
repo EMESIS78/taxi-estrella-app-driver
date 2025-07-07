@@ -35,6 +35,7 @@ const LoginScreen = () => {
         }
 
         try {
+            console.log('Endpoint usado:', `${API_URL}/conductor/login`);
             const res = await fetch(`${API_URL}/conductor/login`, {
                 method: 'POST',
                 headers: {
@@ -45,6 +46,15 @@ const LoginScreen = () => {
                     password: password,
                 }),
             });
+
+            if (res.status === 409) {
+                const data = await res.json();  // Por si quieres mostrar el mensaje del backend
+                Alert.alert(
+                    'Sesión activa',
+                    data.mensaje || 'Ya tienes una sesión activa en otro dispositivo. Por favor, cierra la otra sesión primero.'
+                );
+                return;  // 👈 Detiene el login aquí
+            }
 
             if (!res.ok) {
                 const errorText = await res.text();

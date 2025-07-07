@@ -11,6 +11,7 @@ export const useServicioHandler = (location, user) => {
     const [partidaCoords, setPartidaCoords] = useState(null);
     const [destinoCoords, setDestinoCoords] = useState(null);
     const [mostrarBotonRuta, setMostrarBotonRuta] = useState(false);
+    const [navegacionActiva, setNavegacionActiva] = useState(false);
 
     const aceptarServicio = async (servicio) => {
         try {
@@ -38,6 +39,7 @@ export const useServicioHandler = (location, user) => {
 
             setServicioActivo(servicio);
             setMostrarBotonRuta(true);
+            setNavegacionActiva(true);
             await AsyncStorage.setItem('servicioActivo', JSON.stringify(servicio));
         } catch (error) {
             console.error('Error al aceptar servicio:', error);

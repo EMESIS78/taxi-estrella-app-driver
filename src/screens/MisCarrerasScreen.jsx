@@ -13,7 +13,10 @@ import { useServiciosConductor } from '../hooks/useServiciosConductor';
 import moment from 'moment';
 
 const MisCarrerasScreen = () => {
-  const servicios = useServiciosConductor();
+  const servicios = useServiciosConductor(handleServiciosCargados);
+  const handleServiciosCargados = (servicios) => {
+    console.log('✅ Servicios cargados correctamente:', servicios.length);
+  };
   const scheme = useColorScheme();
 
   const hoy = servicios.filter(s => moment(s.fecha, 'DD-MM-YYYY HH:mm').isSame(moment(), 'day')).length;

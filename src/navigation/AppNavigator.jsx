@@ -42,6 +42,12 @@ const CustomDrawerContent = ({ navigation }) => {
                 labelStyle={[styles.drawerLabel, { color: textColor }]}
             />
 
+            <DrawerItem
+                label="Resumenes"
+                onPress={() => navigation.navigate('MisCarreras')}
+                labelStyle={[styles.drawerLabel, { color: textColor }]}
+            />
+
             <View style={styles.logoutContainer}>
                 <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
                     <Text style={styles.logoutText}>Cerrar sesión</Text>
@@ -77,7 +83,7 @@ const AppNavigator = () => {
                     }}
                 >
                     <Drawer.Screen name="Monitoreo" component={TrackerScreen} />
-                    {/* <Drawer.Screen name="MisCarreras" component={MisCarrerasScreen} /> */}
+                    <Drawer.Screen name="MisCarreras" component={MisCarrerasScreen} />
                 </Drawer.Navigator>
             ) : (
                 <LoginScreen />

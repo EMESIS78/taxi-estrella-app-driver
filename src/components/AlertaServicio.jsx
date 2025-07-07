@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Audio } from 'expo-av';
 
-const AlertaServicio = ({ servicio, onClose, onAceptar }) => {
+const AlertaServicio = ({ servicio, onClose, onAceptar, servicioTomado }) => {
     useEffect(() => {
         if (servicio) {
             reproducirSonido();
@@ -33,14 +33,18 @@ const AlertaServicio = ({ servicio, onClose, onAceptar }) => {
             <Text><Text style={styles.label}>Partida:</Text> {servicio.puntoPartida}</Text>
             <Text><Text style={styles.label}>Destino:</Text> {servicio.puntoLlegada}</Text>
             <Text><Text style={styles.label}>Precio:</Text> S/ {servicio.precio.toFixed(2)}</Text>
-            <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.buttonSecondary} onPress={onClose}>
-                    <Text style={styles.buttonText}>Cerrar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.buttonPrimary} onPress={onAceptar}>
-                    <Text style={styles.buttonText}>Aceptar</Text>
-                </TouchableOpacity>
-            </View>
+            {servicioTomado ? (
+                <Text style={[styles.warningText]}>⚠️ Este servicio ya fue tomado por otro conductor.</Text>
+            ) : (
+                <View style={styles.buttonRow}>
+                    <TouchableOpacity style={styles.buttonSecondary} onPress={onClose}>
+                        <Text style={styles.buttonText}>Cerrar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.buttonPrimary} onPress={onAceptar}>
+                        <Text style={styles.buttonText}>Aceptar</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </View>
     );
 };
@@ -95,6 +99,7 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
     },
+    warningText: { color: 'red', fontWeight: 'bold', marginTop: 10, textAlign: 'center' },
 });
 
 export default AlertaServicio;

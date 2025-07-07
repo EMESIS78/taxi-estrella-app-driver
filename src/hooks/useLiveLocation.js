@@ -20,12 +20,11 @@ export const useLiveLocation = () => {
             }
 
             try {
-
                 subscription = await Location.watchPositionAsync(
                     {
                         accuracy: Location.Accuracy.High,
-                        timeInterval: 2000,
-                        distanceInterval: 5,
+                        timeInterval: 2000,       // Cada 2 segundos
+                        distanceInterval: 2,      // 👈 Muy sensible, detecta casi cualquier movimiento
                     },
                     (loc) => {
                         const newLocation = {
@@ -33,6 +32,7 @@ export const useLiveLocation = () => {
                             longitude: loc.coords.longitude,
                         };
 
+                        // Siempre calculamos el bearing
                         if (previousLocation) {
                             const bearing = calcularBearing(previousLocation, newLocation);
                             setHeading(bearing);

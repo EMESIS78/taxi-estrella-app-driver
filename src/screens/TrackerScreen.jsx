@@ -16,6 +16,9 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { useIsFocused } from '@react-navigation/native';
 import { useDrawerStatus } from '@react-navigation/drawer';
 import { useDistancias } from '../hooks/useDistancias';
+import { useCompassHeading } from '../hooks/useCompassHeading';
+import { useHeading } from '../hooks/useHeading';
+
 
 const TrackerScreen = () => {
     useKeepAwake();
@@ -28,11 +31,14 @@ const TrackerScreen = () => {
     const [partidaCoords, setPartidaCoords] = useState(null);
     const [destinoCoords, setDestinoCoords] = useState(null);
     const [mostrarBotonRuta, setMostrarBotonRuta] = useState(false);
+    const [servicioTomado, setServicioTomado] = useState(false);
     const isFocused = useIsFocused();
+    const compassHeading = useCompassHeading();
+    const heading = useHeading();
 
     const theme = useColorScheme();
     const mapRef = useRef(null);
-    const { location, loading, heading } = useLiveLocation();
+    const { location, loading } = useLiveLocation();
 
     useServicioSocket(location, setNuevoServicio);
     useEnviarUbicacionConductor({ location, user, estado: estadoActual });
@@ -178,6 +184,7 @@ const TrackerScreen = () => {
                 <Mapa
                     location={location}
                     heading={heading}
+                    //heading={compassHeading}
                     mapRef={mapRef}
                     darkMode={theme === 'dark'}
                     iconColor={iconColor}
@@ -204,7 +211,7 @@ const TrackerScreen = () => {
             />
 
             <EstadoConductor onEstadoChange={setEstadoActual} />
-            <AlertaServicio servicio={nuevoServicio} onClose={() => setNuevoServicio(null)} onAceptar={aceptarServicio} />
+            <AlertaServicio servicio={nuevoServicio} onClose={() => setNuevoServicio(null)} onAceptar={aceptarServicio} servicioTomado={servicioTomado} />
         </View>
     );
 };

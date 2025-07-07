@@ -4,7 +4,7 @@ import SockJS from 'sockjs-client';
 import { geocodeAddress, calcularDistanciaKm } from '../utils/geolocation';
 import { API_URL } from '@env';
 
-export const useServicioSocket = (location, setNuevoServicio) => {
+export const useServicioSocket = (location, setNuevoServicio, nuevoServicio, setServicioTomado) => {
     useEffect(() => {
         const socket = new SockJS(`${API_URL}/ws`);
         const stompClient = new Client({
@@ -27,6 +27,17 @@ export const useServicioSocket = (location, setNuevoServicio) => {
                         console.error('❌ Error geocodificando:', err);
                     }
                 });
+
+                stompClient.subscribe('/topic/servicio-tomado', ({ body }) => {
+                    const idServicioTomado = Number(body);
+                    console.log('🚨 Servicio tomado:', idServicioTomado);
+
+                    if (nuevoServicio && nuevoServicio.idServicio === idServicioTomado) {
+                        console.warn('⚠️ Otro conductor tomó este servicio.');
+                        setNuevoServicio(null);
+                        setServicioTomado(true);  // 👉 Aquí marcamos que ya fue tomado
+                    }
+                });
             },
             onStompError: frame => {
                 console.error('💥 Error STOMP:', frame.headers['message']);
@@ -35,5 +46,5 @@ export const useServicioSocket = (location, setNuevoServicio) => {
 
         stompClient.activate();
         return () => stompClient.deactivate();
-    }, [location]);
+    }, [location, nuevoServicio]);
 };

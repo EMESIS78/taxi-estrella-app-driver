@@ -14,21 +14,26 @@ const Mapa = ({
     rutaACamino,
     rutaServicio,
     partidaCoords,
-    destinoCoords
+    destinoCoords,
+    servicioActivo
 }) => {
+    const rotacionActiva = Boolean(servicioActivo) || rutaACamino.length > 0 || rutaServicio.length > 0;
+
     useEffect(() => {
         if (location && mapRef?.current) {
             mapRef.current.animateCamera({
                 center: location,
+                heading: rotacionActiva ? heading : 0,
                 pitch: 0,
                 zoom: 17,
             }, { duration: 1000 });
         }
-    }, [location, heading]);
+    }, [location, heading, rotacionActiva]);
 
     return (
         <MapView
             ref={mapRef}
+            rotateEnabled={rotacionActiva}
             style={styles.map}
             initialRegion={{
                 latitude: location.latitude,
@@ -42,7 +47,7 @@ const Mapa = ({
             <Marker
                 coordinate={location}
                 anchor={{ x: 0.5, y: 0.5 }}
-                rotation={0}  // 👈 Dejas el marcador sin rotación, porque el mapa ya rota
+                rotation={rotacionActiva ? heading : 0}
                 flat={true}
             >
                 <FontAwesome name="car" size={36} color={iconColor} />

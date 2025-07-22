@@ -42,6 +42,17 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": [
+              "https://maven.aliyun.com/repository/central",
+              "https://maven.aliyun.com/repository/public"
+            ]
+          }
+        }
       ]
     ],
     "experiments": {

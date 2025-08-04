@@ -12,9 +12,6 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "API_URL": "http://147.93.182.133:8080"
       }
     },
     "production": {

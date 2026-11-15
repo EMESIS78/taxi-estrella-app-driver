@@ -1,24 +1,58 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Audio } from 'expo-av';
 
 const AlertaServicio = ({ servicio, onClose, onAceptar, servicioTomado }) => {
-    useEffect(() => {
-        if (servicio) {
-            reproducirSonido();
-        }
-    }, [servicio]);
+    const sonidoRef = useRef(null);
 
-    const reproducirSonido = async () => {
-        try {
-            const { sound } = await Audio.Sound.createAsync(
-                require('../../assets/sounds/alert.mp3')
-            );
-            await sound.playAsync();
-        } catch (error) {
-            console.log('Error al reproducir el sonido:', error);
-        }
-    };
+    useEffect(() => {
+        if (!servicio) return;
+
+        let alertaCerrada = false;
+
+        // Every created sound holds a native player, so it has to be released
+        // with unloadAsync once it finishes (or as soon as the alert goes away).
+        const liberarSonido = (sound) => {
+            if (sonidoRef.current === sound) {
+                sonidoRef.current = null;
+            }
+            sound.unloadAsync();
+        };
+
+        const reproducirSonido = async () => {
+            try {
+                const { sound } = await Audio.Sound.createAsync(
+                    require('../../assets/sounds/alert.mp3')
+                );
+
+                if (alertaCerrada) {
+                    liberarSonido(sound);
+                    return;
+                }
+
+                sonidoRef.current = sound;
+                sound.setOnPlaybackStatusUpdate((status) => {
+                    if (status.didJustFinish) {
+                        liberarSonido(sound);
+                    }
+                });
+
+                await sound.playAsync();
+            } catch (error) {
+                console.log('Error al reproducir el sonido:', error);
+            }
+        };
+
+        reproducirSonido();
+
+        return () => {
+            alertaCerrada = true;
+            const sound = sonidoRef.current;
+            if (sound) {
+                liberarSonido(sound);
+            }
+        };
+    }, [servicio]);
 
     if (!servicio) return null;
 

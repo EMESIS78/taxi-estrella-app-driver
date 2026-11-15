@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
 import { calcularBearing } from '../utils/geolocation';
 
 export const useLiveLocation = () => {
     const [location, setLocation] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [previousLocation, setPreviousLocation] = useState(null);
     const [heading, setHeading] = useState(0);
+
+    // The watcher callback is created once, so the previous position has to
+    // live in a ref: a state value would stay frozen at its mount value and
+    // the bearing would always come out as 0.
+    const previousLocationRef = useRef(null);
 
     useEffect(() => {
         let subscription;
@@ -33,13 +37,14 @@ export const useLiveLocation = () => {
                         };
 
                         // Siempre calculamos el bearing
+                        const previousLocation = previousLocationRef.current;
                         if (previousLocation) {
                             const bearing = calcularBearing(previousLocation, newLocation);
                             setHeading(bearing);
                         }
 
                         setLocation(newLocation);
-                        setPreviousLocation(newLocation);
+                        previousLocationRef.current = newLocation;
                     }
                 );
             } catch (err) {

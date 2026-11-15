@@ -9,10 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "config": {
-        "googleMapsApiKey": "AIzaSyCZqHbNMMzl9ODmkN1Hb8nqk8sFsOj6Arg"
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -20,11 +17,6 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyCZqHbNMMzl9ODmkN1Hb8nqk8sFsOj6Arg"
-        }
-      },
       "package": "com.fabrixcio1107.taxiestrellaappdriver"
     },
     "web": {

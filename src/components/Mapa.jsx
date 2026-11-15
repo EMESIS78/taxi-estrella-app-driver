@@ -1,9 +1,13 @@
 // components/Mapa.jsx
 import React, { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { FontAwesome } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { darkMapStyle } from '../../constants/MapStyles';
+
+// False when the build has no GOOGLE_MAPS_ANDROID_KEY (see app.config.js).
+const mapsEnabled = Constants.expoConfig?.extra?.mapsEnabled === true;
 
 const Mapa = ({
     location,
@@ -29,6 +33,19 @@ const Mapa = ({
             }, { duration: 1000 });
         }
     }, [location, heading, rotacionActiva]);
+
+    if (!mapsEnabled) {
+        const textColor = darkMode ? '#ecf0f1' : '#2c3e50';
+        return (
+            <View style={[styles.placeholder, { backgroundColor: darkMode ? '#2c3e50' : '#ecf0f1' }]}>
+                <FontAwesome name="map-o" size={48} color={textColor} />
+                <Text style={[styles.placeholderTitle, { color: textColor }]}>Aquí va el mapa</Text>
+                <Text style={[styles.placeholderSubtitle, { color: textColor }]}>
+                    Falta configurar GOOGLE_MAPS_ANDROID_KEY
+                </Text>
+            </View>
+        );
+    }
 
     return (
         <MapView
@@ -68,6 +85,22 @@ const Mapa = ({
 const styles = StyleSheet.create({
     map: {
         flex: 1,
+    },
+    placeholder: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+    },
+    placeholderTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginTop: 12,
+    },
+    placeholderSubtitle: {
+        fontSize: 12,
+        marginTop: 4,
+        opacity: 0.8,
     },
 });
 

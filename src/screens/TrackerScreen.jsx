@@ -14,9 +14,7 @@ import ControlesServicio from '../components/ControlesServicio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useIsFocused } from '@react-navigation/native';
-import { useDrawerStatus } from '@react-navigation/drawer';
 import { useDistancias } from '../hooks/useDistancias';
-import { useCompassHeading } from '../hooks/useCompassHeading';
 import { useHeading } from '../hooks/useHeading';
 
 
@@ -33,7 +31,6 @@ const TrackerScreen = () => {
     const [mostrarBotonRuta, setMostrarBotonRuta] = useState(false);
     const [servicioTomado, setServicioTomado] = useState(false);
     const isFocused = useIsFocused();
-    const compassHeading = useCompassHeading();
     const heading = useHeading();
 
     const theme = useColorScheme();
@@ -175,7 +172,6 @@ const TrackerScreen = () => {
         ServicioPeligro: 'orange',
     }[estadoActual] || 'gray';
 
-    const isDrawerOpen = useDrawerStatus() === 'open';
     return (
         <View style={{ flex: 1 }}>
             {!isFocused || loading || !location || !theme ? (
@@ -184,7 +180,6 @@ const TrackerScreen = () => {
                 <Mapa
                     location={location}
                     heading={heading}
-                    //heading={compassHeading}
                     mapRef={mapRef}
                     darkMode={theme === 'dark'}
                     iconColor={iconColor}

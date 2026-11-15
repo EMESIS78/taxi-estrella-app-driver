@@ -25,7 +25,6 @@
       "favicon": "./assets/images/logoApp1.png"
     },
     "plugins": [
-      "expo-router",
       [
         "expo-splash-screen",
         {
@@ -47,11 +46,7 @@
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
-      "router": {},
       "eas": {
         "projectId": "e2b3b725-568e-4d26-8875-868a749eb33e"
       }

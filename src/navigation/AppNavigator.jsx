@@ -2,12 +2,10 @@ import React, { useContext, useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { View, Text, Image, StyleSheet, TouchableOpacity, useColorScheme, Alert } from 'react-native';
-import HomeScreen from '../screens/HomeScreen';
 import TrackerScreen from '../screens/TrackerScreen';
 import MisCarrerasScreen from '../screens/MisCarrerasScreen';
 import { AuthContext } from '../context/Authcontext';
 import LoginScreen from '../components/LoginScreen';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 const Drawer = createDrawerNavigator();
 

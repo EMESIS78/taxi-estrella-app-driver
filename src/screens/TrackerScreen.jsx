@@ -37,8 +37,14 @@ const TrackerScreen = () => {
     const mapRef = useRef(null);
     const { location, loading } = useLiveLocation();
 
-    useServicioSocket(location, setNuevoServicio);
+    useServicioSocket(location, setNuevoServicio, nuevoServicio, setServicioTomado);
     useEnviarUbicacionConductor({ location, user, estado: estadoActual });
+
+    // The GPS watcher emits a new location object every ~2s. Restoring the
+    // stored ride is a one-shot job, so it runs on the first location we get
+    // and never again: otherwise every update spends 2 geocoding and
+    // 2 directions requests of the Google quota.
+    const servicioRestauradoRef = useRef(false);
 
     useEffect(() => {
         const restaurarServicio = async () => {
@@ -61,7 +67,8 @@ const TrackerScreen = () => {
             }
         };
 
-        if (location) {
+        if (location && !servicioRestauradoRef.current) {
+            servicioRestauradoRef.current = true;
             restaurarServicio();
         }
     }, [location]);

@@ -1,10 +1,20 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { geocodeAddress, calcularDistanciaKm } from '../utils/geolocation';
 import { API_URL } from '@env';
 
 export const useServicioSocket = (location, setNuevoServicio, nuevoServicio, setServicioTomado) => {
+    // The GPS watcher emits a new location object every ~2s and the pending
+    // offer changes while the socket is open. Reading both from a ref keeps a
+    // single STOMP connection alive instead of reconnecting and dropping the
+    // services that arrive during the reconnection window.
+    const datosRef = useRef({ location, nuevoServicio, setNuevoServicio, setServicioTomado });
+
+    useEffect(() => {
+        datosRef.current = { location, nuevoServicio, setNuevoServicio, setServicioTomado };
+    }, [location, nuevoServicio, setNuevoServicio, setServicioTomado]);
+
     useEffect(() => {
         const socket = new SockJS(`${API_URL}/ws`);
         const stompClient = new Client({
@@ -17,9 +27,9 @@ export const useServicioSocket = (location, setNuevoServicio, nuevoServicio, set
                     console.log("📍 Servicio recibido:", servicio);
                     try {
                         const partidaCoords = await geocodeAddress(servicio.puntoPartida);
-                        const distancia = calcularDistanciaKm(location, partidaCoords);
+                        const distancia = calcularDistanciaKm(datosRef.current.location, partidaCoords);
                         if (distancia <= 3) {
-                            setNuevoServicio(servicio);
+                            datosRef.current.setNuevoServicio(servicio);
                         } else {
                             console.log('🚫 Servicio fuera de rango:', distancia.toFixed(2), 'km');
                         }
@@ -32,10 +42,11 @@ export const useServicioSocket = (location, setNuevoServicio, nuevoServicio, set
                     const idServicioTomado = Number(body);
                     console.log('🚨 Servicio tomado:', idServicioTomado);
 
-                    if (nuevoServicio && nuevoServicio.idServicio === idServicioTomado) {
+                    const servicioPendiente = datosRef.current.nuevoServicio;
+                    if (servicioPendiente && servicioPendiente.idServicio === idServicioTomado) {
                         console.warn('⚠️ Otro conductor tomó este servicio.');
-                        setNuevoServicio(null);
-                        setServicioTomado(true);  // 👉 Aquí marcamos que ya fue tomado
+                        datosRef.current.setNuevoServicio(null);
+                        datosRef.current.setServicioTomado(true);  // 👉 Aquí marcamos que ya fue tomado
                     }
                 });
             },
@@ -46,5 +57,5 @@ export const useServicioSocket = (location, setNuevoServicio, nuevoServicio, set
 
         stompClient.activate();
         return () => stompClient.deactivate();
-    }, [location, nuevoServicio]);
+    }, []);
 };

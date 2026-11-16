@@ -4,7 +4,7 @@
     "slug": "taxi-estrella-app-driver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/LOGOAPPICON.png",
+    "icon": "./assets/images/1.png",
     "scheme": "taxiestrellaappdriver",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/LOGOAPPICON.png",
+        "foregroundImage": "./assets/images/1.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -21,13 +21,15 @@
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/images/logoApp1.png"
+      "favicon": "./assets/images/1.png"
     },
     "plugins": [
+      "expo-font",
+      "expo-web-browser",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logoApp1.png",
+          "image": "./assets/images/1.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"

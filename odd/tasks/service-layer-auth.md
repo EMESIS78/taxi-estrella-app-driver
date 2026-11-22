@@ -25,7 +25,7 @@ Out of scope for this slice (rest of phase 5, later): user-facing notification o
 - [x] **T1** S1, S3, S6 — `tokenStore` + `apiClient` + services; migrate all call sites. Route: inline. RED: module missing → GREEN 10/10.
 - [x] **T2** S4, S5 — AuthContext: token persistence, unauthorized handler, logout that always clears. Route: inline. RED 6/6 failing (old logout sent `sessionToken` as `Authorization`) → GREEN.
 - [x] **T3** S2 — STOMP `connectHeaders` with the token. Route: inline. RED 2 → GREEN.
-- [ ] **T4** Device check with the user: location PUT returns 200 every 8 s; STOMP log shows CONNECTED.
+- [x] **T4** Device check with the user: location PUT returns 200 every 8 s; STOMP log shows CONNECTED. Confirmed on a physical phone (L6, L7).
 
 Risk: item 2 (auth/credentials: token storage and transmission) → independent verifier after T1–T3.
 
@@ -34,4 +34,7 @@ Risk: item 2 (auth/credentials: token storage and transmission) → independent 
 - **L1** (2026-11-21, user) "ok ya esta, ahora en los Logs esta dando el error de envio de ubicacion, supongo que es por lo del mapa"
 - **L2** (2026-11-21) Evidence: `PUT /conductor/actualizarUbicacionConductor` without token → `HTTP 401 {"error":"No autenticado","mensaje":"Se requiere un token de acceso valido"}`. Swagger declares `bearerAuth` (JWT) on every endpoint used by the app; request/response shapes already match the app.
 - **L4** (2026-11-21) Independent verifier: S1–S6 met. Blocker B1: stompjs `debug` printed the CONNECT frame with the JWT → fixed (redact `Authorization`, debug only in `__DEV__`) + regression test; recheck confirmed against a real stompjs `FrameImpl`. Also fixed advisory: one "Sesión finalizada" alert per expired session. Open advisories: STOMP 401/ERROR not routed to the logout handler (location PUT triggers it within 8 s); timeout does not cover body read; voluntary logout can show the alert if `cerrar-sesion` returns 401. `npm test`: 52/52; eslint: 0 errors (8 pre-existing warnings).
+- **L5** (2026-11-21) Commit 74bd83a. Native review (user granted; lenses risk/resilience/reliability; untracked logos excluded) → approved and acknowledged, lineage review-7433a4bd703682e2. 14 non-blocking advisories for follow-up; main ones: STOMP retries every 5 s with a rejected or null token (`Bearer null`) and never ends the session; voluntary logout can show "Sesión finalizada"; body read outside the timeout; legacy installs drop the local session without calling `cerrar-sesion`; service wrapper payloads untested.
+- **L6** (2026-11-21, user) "ya probé, la ubicación se envía bien" — T4 location half confirmed on device; STOMP CONNECTED still unconfirmed.
+- **L7** (2026-11-21, user log) STOMP on device: `>>> CONNECT` with `Authorization:Bearer ***` (redacted) → `<<< CONNECTED` as `AuthenticatedUser[..., rol=CONDUCTOR, sid=...]`, then SUBSCRIBE `/topic/servicios` and `/topic/servicio-tomado`. Server answers `heart-beat:0,0` (no heartbeats: a silently dropped connection is not detected; follow-up).
 - **L3** (2026-11-21, user) Backend auth contract: token in `Authorization: Bearer`, also on STOMP CONNECT; `sessionToken` never sent; it travels inside the JWT as claim `sid`; a login on another device makes the old token receive `401 ... "La sesion fue cerrada o iniciada en otro dispositivo"`.

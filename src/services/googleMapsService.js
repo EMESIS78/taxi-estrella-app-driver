@@ -1,13 +1,10 @@
 import polyline from '@mapbox/polyline';
-import { GOOGLE_API_KEY } from '@env';
+import { apiRequest, ApiError } from './apiClient';
 
-// Google Maps web services used by the app: Geocoding (address → coordinates)
-// and Routes (driving route between two points). Every failure becomes a
-// GoogleMapsError with a `code` and a message the driver can read.
-
-const GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
-// The legacy Directions API can no longer be enabled on new Google Cloud projects.
-const ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+// Geocoding (address → coordinates) and driving routes, through the backend
+// proxy (/mapas/*). The Google key lives on the server, so the app never
+// carries it. Every failure becomes a GoogleMapsError with a `code` and a
+// message the driver can read.
 
 export class GoogleMapsError extends Error {
     constructor(code, message) {
@@ -20,23 +17,28 @@ export class GoogleMapsError extends Error {
 const GEOCODE_MESSAGES = {
     ZERO_RESULTS: (address) => `No se encontró la dirección "${address}".`,
     OVER_QUERY_LIMIT: () => 'Se superó el límite de consultas a Google Maps. Intenta en unos minutos.',
-    REQUEST_DENIED: () => 'Google Maps rechazó la consulta. Revisa la clave GOOGLE_API_KEY.',
+    REQUEST_DENIED: () => 'Google Maps rechazó la consulta. Revisa la clave de mapas del servidor.',
 };
 
-const request = async (url, options) => {
+const proxy = async (path, query) => {
     try {
-        const response = await fetch(url, options);
-        return { response, data: await response.json() };
-    } catch {
-        throw new GoogleMapsError('NETWORK', 'No se pudo conectar con Google Maps.');
+        return await apiRequest(path, { query });
+    } catch (err) {
+        if (err instanceof ApiError) {
+            throw new GoogleMapsError(err.status === 0 ? 'NETWORK' : `HTTP_${err.status}`, err.message);
+        }
+        throw err;
     }
 };
 
-export const geocodeAddress = async (address) => {
-    const url = `${GEOCODE_URL}?address=${encodeURIComponent(address)}&key=${encodeURIComponent(GOOGLE_API_KEY)}`;
-    const { response, data } = await request(url);
+// The backend accepts at most 8 decimals per coordinate; GPS fixes carry ~15.
+// Six decimals is about 11 cm.
+const latLng = ({ latitude, longitude }) => `${latitude.toFixed(6)},${longitude.toFixed(6)}`;
 
-    const status = data?.status ?? `HTTP_${response.status}`;
+export const geocodeAddress = async (address) => {
+    const data = await proxy('/mapas/geocodificar', { direccion: address });
+
+    const status = data?.status ?? 'UNKNOWN_ERROR';
     if (status !== 'OK') {
         const message = GEOCODE_MESSAGES[status]?.(address)
             ?? data?.error_message
@@ -48,30 +50,8 @@ export const geocodeAddress = async (address) => {
     return { latitude: lat, longitude: lng };
 };
 
-const toLatLng = ({ latitude, longitude }) => ({ location: { latLng: { latitude, longitude } } });
-
 export const getRutaGoogleMaps = async (origen, destino) => {
-    const { response, data } = await request(ROUTES_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': GOOGLE_API_KEY,
-            // Ask only for the polyline: Google bills and sizes the response by field mask.
-            'X-Goog-FieldMask': 'routes.polyline.encodedPolyline',
-        },
-        body: JSON.stringify({
-            origin: toLatLng(origen),
-            destination: toLatLng(destino),
-            travelMode: 'DRIVE',
-        }),
-    });
-
-    if (!response.ok) {
-        throw new GoogleMapsError(
-            data?.error?.status ?? `HTTP_${response.status}`,
-            data?.error?.message || `Routes API respondió ${response.status}`
-        );
-    }
+    const data = await proxy('/mapas/ruta', { origen: latLng(origen), destino: latLng(destino) });
 
     const encoded = data?.routes?.[0]?.polyline?.encodedPolyline;
     if (!encoded) return [];

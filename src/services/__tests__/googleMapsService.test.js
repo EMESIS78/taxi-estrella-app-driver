@@ -1,42 +1,53 @@
 import polyline from '@mapbox/polyline';
-import { GOOGLE_API_KEY } from '@env';
+import { API_URL } from '@env';
 import { geocodeAddress, getRutaGoogleMaps, GoogleMapsError } from '../googleMapsService';
+import { saveToken, clearToken } from '../tokenStore';
 
-const origen = { latitude: -12.05, longitude: -77.04 };
-const destino = { latitude: -12.1, longitude: -77.03 };
+jest.mock('expo-secure-store', () => ({
+    setItemAsync: jest.fn(),
+    getItemAsync: jest.fn(),
+    deleteItemAsync: jest.fn(),
+}));
+
+// GPS fixes carry ~15 decimals; the proxy accepts at most 8.
+const origen = { latitude: -16.420512345678912, longitude: -71.565098765432101 };
+const destino = { latitude: -16.398765, longitude: -71.536789 };
 
 const respuesta = (status, body) => ({
     ok: status >= 200 && status < 300,
     status,
-    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(body === undefined ? '' : JSON.stringify(body)),
 });
 
-describe('getRutaGoogleMaps (Routes API)', () => {
-    beforeEach(() => {
-        global.fetch = jest.fn();
-    });
+const llamada = () => {
+    const [url, options] = global.fetch.mock.calls[0];
+    return { url, method: options.method, auth: options.headers.Authorization };
+};
 
-    afterEach(() => {
-        delete global.fetch;
-    });
+beforeEach(async () => {
+    global.fetch = jest.fn();
+    await saveToken('jwt-abc');
+});
 
-    it('asks computeRoutes for a driving route and decodes its polyline', async () => {
-        const puntos = [[-12.05, -77.04], [-12.07, -77.035], [-12.1, -77.03]];
+afterEach(async () => {
+    delete global.fetch;
+    await clearToken();
+});
+
+describe('getRutaGoogleMaps (backend /mapas/ruta)', () => {
+    it('asks the backend for the route with lat,lng points and decodes its polyline', async () => {
+        const puntos = [[-16.42051, -71.5651], [-16.41, -71.55], [-16.39877, -71.53679]];
         global.fetch.mockResolvedValue(respuesta(200, {
-            routes: [{ polyline: { encodedPolyline: polyline.encode(puntos) } }],
+            routes: [{ distanceMeters: 4200, polyline: { encodedPolyline: polyline.encode(puntos) } }],
         }));
 
         const ruta = await getRutaGoogleMaps(origen, destino);
 
-        const [url, options] = global.fetch.mock.calls[0];
-        expect(url).toBe('https://routes.googleapis.com/directions/v2:computeRoutes');
-        expect(options.method).toBe('POST');
-        expect(options.headers['X-Goog-Api-Key']).toBe(GOOGLE_API_KEY);
-        expect(options.headers['X-Goog-FieldMask']).toBe('routes.polyline.encodedPolyline');
-        expect(JSON.parse(options.body)).toEqual({
-            origin: { location: { latLng: origen } },
-            destination: { location: { latLng: destino } },
-            travelMode: 'DRIVE',
+        expect(llamada()).toEqual({
+            url: `${API_URL}/mapas/ruta?origen=${encodeURIComponent('-16.420512,-71.565099')}`
+                + `&destino=${encodeURIComponent('-16.398765,-71.536789')}`,
+            method: 'GET',
+            auth: 'Bearer jwt-abc',
         });
         expect(ruta).toEqual(puntos.map(([latitude, longitude]) => ({ latitude, longitude })));
     });
@@ -47,27 +58,21 @@ describe('getRutaGoogleMaps (Routes API)', () => {
         await expect(getRutaGoogleMaps(origen, destino)).resolves.toEqual([]);
     });
 
-    it('fails with a GoogleMapsError carrying the Google message when the request is rejected', async () => {
-        global.fetch.mockResolvedValue(respuesta(403, {
-            error: { status: 'PERMISSION_DENIED', message: 'Routes API has not been used in project' },
+    it('turns a backend 502 into a GoogleMapsError with the backend message', async () => {
+        global.fetch.mockResolvedValue(respuesta(502, {
+            error: 'Error de mapas',
+            mensaje: 'No se pudo consultar el servicio de mapas',
         }));
 
         const error = await getRutaGoogleMaps(origen, destino).catch((e) => e);
+
         expect(error).toBeInstanceOf(GoogleMapsError);
-        expect(error.code).toBe('PERMISSION_DENIED');
-        expect(error.message).toBe('Routes API has not been used in project');
+        expect(error.code).toBe('HTTP_502');
+        expect(error.message).toBe('No se pudo consultar el servicio de mapas');
     });
 });
 
-describe('geocodeAddress (Geocoding API)', () => {
-    beforeEach(() => {
-        global.fetch = jest.fn();
-    });
-
-    afterEach(() => {
-        delete global.fetch;
-    });
-
+describe('geocodeAddress (backend /mapas/geocodificar)', () => {
     it('returns the coordinates of the first result', async () => {
         global.fetch.mockResolvedValue(respuesta(200, {
             status: 'OK',
@@ -77,17 +82,17 @@ describe('geocodeAddress (Geocoding API)', () => {
         await expect(geocodeAddress('Huaranguillo, Sachaca, Arequipa'))
             .resolves.toEqual({ latitude: -16.4205, longitude: -71.565 });
 
-        const [url] = global.fetch.mock.calls[0];
-        expect(url).toBe(
-            'https://maps.googleapis.com/maps/api/geocode/json' +
-            `?address=${encodeURIComponent('Huaranguillo, Sachaca, Arequipa')}&key=${encodeURIComponent(GOOGLE_API_KEY)}`
-        );
+        expect(llamada()).toEqual({
+            url: `${API_URL}/mapas/geocodificar?direccion=${encodeURIComponent('Huaranguillo, Sachaca, Arequipa')}`,
+            method: 'GET',
+            auth: 'Bearer jwt-abc',
+        });
     });
 
     it.each([
         ['ZERO_RESULTS', 'No se encontró la dirección "Calle Falsa 123".'],
         ['OVER_QUERY_LIMIT', 'Se superó el límite de consultas a Google Maps. Intenta en unos minutos.'],
-        ['REQUEST_DENIED', 'Google Maps rechazó la consulta. Revisa la clave GOOGLE_API_KEY.'],
+        ['REQUEST_DENIED', 'Google Maps rechazó la consulta. Revisa la clave de mapas del servidor.'],
     ])('turns the %s status into a GoogleMapsError', async (status, mensaje) => {
         global.fetch.mockResolvedValue(respuesta(200, { status, results: [] }));
 
@@ -96,6 +101,18 @@ describe('geocodeAddress (Geocoding API)', () => {
         expect(error).toBeInstanceOf(GoogleMapsError);
         expect(error.code).toBe(status);
         expect(error.message).toBe(mensaje);
+    });
+
+    it('reports a backend without a maps key (503)', async () => {
+        global.fetch.mockResolvedValue(respuesta(503, {
+            error: 'Servicio no disponible',
+            mensaje: 'El servicio de mapas no esta configurado',
+        }));
+
+        const error = await geocodeAddress('Plaza de Armas').catch((e) => e);
+
+        expect(error.code).toBe('HTTP_503');
+        expect(error.message).toBe('El servicio de mapas no esta configurado');
     });
 
     it('turns a network failure into a GoogleMapsError', async () => {

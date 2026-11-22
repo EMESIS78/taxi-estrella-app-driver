@@ -232,4 +232,46 @@ describe('TrackerScreen', () => {
         expect(screen.getByText('Aceptar')).toBeOnTheScreen();
         expect(screen.queryByText('⚠️ Este servicio ya fue tomado por otro conductor.')).toBeNull();
     });
+
+    const aceptarOferta = async () => {
+        servicioService.tomar.mockResolvedValue(null);
+        conductorService.cambiarEstado.mockResolvedValue(undefined);
+        renderTracker();
+        await emitirServicio();
+        await act(async () => {
+            fireEvent.press(screen.getByText('Aceptar'));
+        });
+        await waitFor(() => expect(estadoEnviado()).toBe('Ocupado'));
+    };
+
+    const controles = () => screen.UNSAFE_root.findByType('ControlesServicio').props;
+    const acciones = { finalizar: servicioService.finalizar, cancelar: servicioService.cancelar };
+
+    it.each([
+        ['finalizar', 'onFinalizar'],
+        ['cancelar', 'onCancelar'],
+    ])('returns the driver to Activo after the ride is %s-ed', async (accion, handler) => {
+        await aceptarOferta();
+        acciones[accion].mockResolvedValue(null);
+
+        await act(async () => {
+            await controles()[handler]();
+        });
+
+        expect(acciones[accion]).toHaveBeenCalledWith(servicio.idServicio, user.dni);
+        await waitFor(() => expect(estadoEnviado()).toBe('Activo'));
+        expect(conductorService.cambiarEstado).toHaveBeenLastCalledWith(user.dni, 'Activo');
+    });
+
+    it('keeps the driver Ocupado when the backend rejects finishing the ride', async () => {
+        await aceptarOferta();
+        servicioService.finalizar.mockRejectedValue(new Error('Network'));
+
+        await act(async () => {
+            await controles().onFinalizar();
+        });
+
+        expect(estadoEnviado()).toBe('Ocupado');
+        expect(conductorService.cambiarEstado).not.toHaveBeenCalledWith(user.dni, 'Activo');
+    });
 });

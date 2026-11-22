@@ -130,6 +130,13 @@ const TrackerScreen = () => {
         setDestinoCoords(null);
         setMostrarBotonRuta(false);
         setServicioActivo(null);
+
+        // The ride is over: the driver is available for offers again.
+        setEstadoActual('Activo');
+        conductorService.cambiarEstado(user?.dni, 'Activo').catch((err) =>
+            console.error('Error al marcar el conductor como Activo:', err.message)
+        );
+
         await AsyncStorage.removeItem('servicioActivo');
     };
 

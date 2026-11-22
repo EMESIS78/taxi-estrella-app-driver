@@ -50,7 +50,7 @@ describe('LoginScreen', () => {
         global.fetch.mockResolvedValue({
             ok: true,
             status: 200,
-            json: () => Promise.resolve(driver),
+            text: () => Promise.resolve(JSON.stringify(driver)),
         });
         const { login } = renderWithAuth();
 

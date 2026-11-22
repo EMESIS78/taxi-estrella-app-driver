@@ -9,7 +9,8 @@ import {
     Image,
     useColorScheme,
 } from 'react-native';
-import { API_URL } from '@env';
+import * as conductorService from '../services/conductorService';
+import { ApiError } from '../services/apiClient';
 import { AuthContext } from '../context/Authcontext';
 
 const LoginScreen = () => {
@@ -34,37 +35,23 @@ const LoginScreen = () => {
             return;
         }
 
+        let data;
         try {
-            console.log('Endpoint usado:', `${API_URL}/conductor/login`);
-            const res = await fetch(`${API_URL}/conductor/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    dni: Number(dni),
-                    password: password,
-                }),
-            });
-
-            if (res.status === 409) {
-                const data = await res.json();  // Por si quieres mostrar el mensaje del backend
+            data = await conductorService.login(dni, password);
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 409) {
                 Alert.alert(
                     'Sesión activa',
-                    data.mensaje || 'Ya tienes una sesión activa en otro dispositivo. Por favor, cierra la otra sesión primero.'
+                    error.data?.mensaje || 'Ya tienes una sesión activa en otro dispositivo. Por favor, cierra la otra sesión primero.'
                 );
-                return;  // 👈 Detiene el login aquí
+                return;
             }
+            console.error('Error de login:', error.status, error.message);
+            Alert.alert('Error de conexión', 'No se pudo iniciar sesión. Intenta nuevamente.');
+            return;
+        }
 
-            if (!res.ok) {
-                const errorText = await res.text();
-                console.error('Error de login:', res.status, errorText);
-                throw new Error('Respuesta no válida');
-            }
-
-            const data = await res.json();
-            console.log('Respuesta del login:', data);
-
+        try {
             if (data?.rol !== 'Conductor') {
                 Alert.alert('Acceso restringido', 'Solo los conductores pueden iniciar sesión.');
                 return;
@@ -75,7 +62,7 @@ const LoginScreen = () => {
                 return;
             }
 
-            login(data); // Esto se mantiene igual, el AuthContext debe usar el objeto completo
+            await login(data);
         } catch (error) {
             console.error(error);
             Alert.alert('Error de conexión', 'No se pudo iniciar sesión. Intenta nuevamente.');

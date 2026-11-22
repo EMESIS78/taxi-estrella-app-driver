@@ -1,31 +1,64 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '@env';
+import * as conductorService from '../services/conductorService';
+import { setUnauthorizedHandler } from '../services/apiClient';
+import { saveToken, loadToken, clearToken } from '../services/tokenStore';
 
 export const AuthContext = createContext();
+
+const USER_KEY = 'user';
+const LEGACY_SESSION_KEY = 'sessionToken';
+
+// The login response carries the JWT (`token`) and the session id
+// (`sessionToken`, also inside the JWT as claim `sid`). Neither belongs in the
+// user profile: the JWT goes to SecureStore and the session id is never used.
+const toProfile = ({ token, sessionToken, ...profile }) => profile;
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const sessionEndedRef = useRef(false);
+
+    const clearLocalSession = useCallback(async () => {
+        setUser(null);
+        try {
+            // LEGACY_SESSION_KEY: written by versions before the JWT migration.
+            await Promise.all([AsyncStorage.multiRemove([USER_KEY, LEGACY_SESSION_KEY]), clearToken()]);
+        } catch (error) {
+            console.error('Error limpiando la sesión local:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        // A 401 means the token expired or the driver logged in on another
+        // device. The backend already closed that session, so only clean up here.
+        setUnauthorizedHandler((mensaje) => {
+            // Several in-flight requests can fail with 401 at once; end the
+            // session and warn the driver only once.
+            if (sessionEndedRef.current) return;
+            sessionEndedRef.current = true;
+            clearLocalSession();
+            Alert.alert('Sesión finalizada', mensaje || 'Tu sesión expiró. Inicia sesión nuevamente.');
+        });
+        return () => setUnauthorizedHandler(null);
+    }, [clearLocalSession]);
 
     useEffect(() => {
         const loadUser = async () => {
             try {
-                const storedUser = await AsyncStorage.getItem('user');
-                const storedToken = await AsyncStorage.getItem('sessionToken');
-                if (storedUser) {
-                    const parsedUser = JSON.parse(storedUser);
+                const [storedUser, token] = await Promise.all([
+                    AsyncStorage.getItem(USER_KEY),
+                    loadToken(),
+                ]);
+                if (!storedUser) return;
 
-                    // Validación adicional
-                    if (!parsedUser.habilitado) {
-                        console.log('Usuario deshabilitado. Cerrando sesión.');
-                        await logout();
-                        return;
-                    }
-
-                    parsedUser.sessionToken = storedToken; // ✅ Asigna el token al usuario
-                    setUser(parsedUser);
+                const parsedUser = JSON.parse(storedUser);
+                if (!token || !parsedUser.habilitado) {
+                    await clearLocalSession();
+                    return;
                 }
+                setUser(parsedUser);
             } catch (error) {
                 console.error('Error cargando usuario:', error);
             } finally {
@@ -34,41 +67,31 @@ export const AuthProvider = ({ children }) => {
         };
 
         loadUser();
-    }, []);
-    const login = async (usuario) => {
-    try {
-        console.log('Usuario recibido en AuthContext:', usuario);
-        setUser(usuario);
-        await AsyncStorage.setItem('user', JSON.stringify(usuario));
-        await AsyncStorage.setItem('sessionToken', usuario.sessionToken);
-    } catch (error) {
-        console.error('Error guardando sesión:', error);
-    }
-};
+    }, [clearLocalSession]);
+
+    const login = async (loginResponse) => {
+        const profile = toProfile(loginResponse);
+        try {
+            await saveToken(loginResponse.token);
+            await AsyncStorage.setItem(USER_KEY, JSON.stringify(profile));
+            sessionEndedRef.current = false;
+            setUser(profile);
+        } catch (error) {
+            console.error('Error guardando sesión:', error);
+            throw error;
+        }
+    };
 
     const logout = async () => {
-    try {
-        const token = await AsyncStorage.getItem('sessionToken');
-        const storedUser = await AsyncStorage.getItem('user');
-        const parsedUser = JSON.parse(storedUser);
-
-        // Llama al backend para cerrar la sesión
-        await fetch(`${API_URL}/conductor/cerrar-sesion?dni=${parsedUser.dni}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': token,
-            },
-        });
-
-        // Limpia localmente
-        setUser(null);
-        await AsyncStorage.multiRemove(['user', 'sessionToken']);
-    } catch (error) {
-        console.error('Error cerrando sesión:', error);
-    }
-};
-
+        try {
+            if (user?.dni) await conductorService.cerrarSesion(user.dni);
+        } catch (error) {
+            // The driver must be able to leave even without network.
+            console.error('Error cerrando sesión en el servidor:', error.message);
+        } finally {
+            await clearLocalSession();
+        }
+    };
 
     return (
         <AuthContext.Provider value={{ user, login, logout, loading }}>

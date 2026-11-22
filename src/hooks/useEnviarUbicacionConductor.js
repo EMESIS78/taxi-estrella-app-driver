@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { API_URL } from '@env';
+import * as conductorService from '../services/conductorService';
 
 const useEnviarUbicacionConductor = ({ location, user, estado }) => {
     // The GPS watcher emits a new location object every ~2s. Keeping these
@@ -17,27 +17,16 @@ const useEnviarUbicacionConductor = ({ location, user, estado }) => {
 
             if (ubicacion && conductor) {
                 try {
-                    const response = await fetch(`${API_URL}/conductor/actualizarUbicacionConductor`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            idConductor: conductor.dni,
-                            estado: estadoActual,
-                            unidad: conductor.unidad,
-                            latitud: ubicacion.latitude,
-                            longitud: ubicacion.longitude,
-                        }),
+                    await conductorService.actualizarUbicacion({
+                        dni: conductor.dni,
+                        estado: estadoActual,
+                        unidad: conductor.unidad,
+                        latitud: ubicacion.latitude,
+                        longitud: ubicacion.longitude,
                     });
-
-                    if (!response.ok) {
-                        console.error('❌ Error enviando ubicación');
-                    } else {
-                        console.log('📍 Ubicación enviada correctamente');
-                    }
+                    console.log('📍 Ubicación enviada correctamente');
                 } catch (err) {
-                    console.error('❌ Error de red al enviar ubicación:', err);
+                    console.error('❌ Error enviando ubicación:', err.status, err.message);
                 }
             }
         }, 8000);

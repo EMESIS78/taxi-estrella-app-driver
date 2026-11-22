@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
 import { View, useColorScheme, ActivityIndicator } from 'react-native';
 import { AuthContext } from '../context/Authcontext';
-import { API_URL } from '@env';
+import * as servicioService from '../services/servicioService';
 import { useLiveLocation } from '../hooks/useLiveLocation';
 import { useServicioSocket } from '../hooks/useServicioSocket';
 import useEnviarUbicacionConductor from '../hooks/useEnviarUbicacionConductor';
@@ -75,17 +75,7 @@ const TrackerScreen = () => {
 
     const aceptarServicio = async () => {
         try {
-            const response = await fetch(`${API_URL}/conductor/tomarServicioWeb`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    idRegistro: nuevoServicio.idServicio,
-                    idConductor: user?.dni,
-                    estadoInforme: 'Aceptado',
-                }),
-            });
-
-            if (!response.ok) return;
+            await servicioService.tomar(nuevoServicio.idServicio, user?.dni);
 
             const partida = await geocodeAddress(nuevoServicio.puntoPartida);
             const destino = await geocodeAddress(nuevoServicio.puntoLlegada);
@@ -108,17 +98,8 @@ const TrackerScreen = () => {
     const finalizarServicio = async () => {
         if (!servicioActivo) return;
         try {
-            const response = await fetch(`${API_URL}/servicio/finalizarServicio`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    idRegistro: servicioActivo.idServicio,
-                    idConductor: user?.dni,
-                    estadoInforme: 'Finalizado',
-                }),
-            });
-
-            if (response.ok) resetServicio();
+            await servicioService.finalizar(servicioActivo.idServicio, user?.dni);
+            resetServicio();
         } catch (err) {
             console.error('Error finalizando servicio:', err);
         }
@@ -127,17 +108,8 @@ const TrackerScreen = () => {
     const cancelarServicio = async () => {
         if (!servicioActivo) return;
         try {
-            const response = await fetch(`${API_URL}/servicio/cancelarServicio`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    idRegistro: servicioActivo.idServicio,
-                    idConductor: user?.dni,
-                    estadoInforme: 'Cancelado',
-                }),
-            });
-
-            if (response.ok) resetServicio();
+            await servicioService.cancelar(servicioActivo.idServicio, user?.dni);
+            resetServicio();
         } catch (err) {
             console.error('Error cancelando servicio:', err);
         }

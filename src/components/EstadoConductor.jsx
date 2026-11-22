@@ -11,7 +11,7 @@ import {
     useColorScheme,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { API_URL } from '@env';
+import * as conductorService from '../services/conductorService';
 import { AuthContext } from '../context/Authcontext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -69,11 +69,7 @@ const EstadoConductor = ({ onEstadoChange }) => {
         if (!user?.dni) return;
 
         try {
-            await fetch(`${API_URL}/conductor/actualizarEstado`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idConductor: parseInt(user.dni, 10), estado }),
-            });
+            await conductorService.actualizarEstado(user.dni, estado);
             console.log(`Estado actualizado a: ${estado}`);
             setEstadoActual(estado);
             onEstadoChange(estado);

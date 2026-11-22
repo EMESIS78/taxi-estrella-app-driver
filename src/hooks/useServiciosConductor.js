@@ -10,13 +10,12 @@ export const useServiciosConductor = (onLoaded) => {
     useEffect(() => {
         const obtenerServicios = async () => {
             try {
-                const data = await servicioService.historial({ page: 0, size: 100 });
-                const serviciosFiltrados = data.contenido.filter(
-                    s => s.nombreConductor === user?.nombre && s.unidad === user?.unidad
-                );
-                setServicios(serviciosFiltrados);
+                // The backend returns only the rides of the driver in the token.
+                const data = await servicioService.misServicios({ page: 0, size: 100 });
+                const misCarreras = data?.contenido ?? [];
+                setServicios(misCarreras);
                 if (onLoaded) {
-                    onLoaded(serviciosFiltrados);  // 👈 Llama al callback cuando cargue
+                    onLoaded(misCarreras);
                 }
             } catch (err) {
                 console.error('Error obteniendo servicios:', err);

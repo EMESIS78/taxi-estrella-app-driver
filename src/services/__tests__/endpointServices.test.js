@@ -119,13 +119,13 @@ describe('endpoint services', () => {
             });
         });
 
-        it('requests the ride history page', async () => {
+        it("requests the authenticated driver's own ride history", async () => {
             global.fetch.mockResolvedValue(ok({ contenido: [] }));
 
-            await expect(servicioService.historial()).resolves.toEqual({ contenido: [] });
+            await expect(servicioService.misServicios()).resolves.toEqual({ contenido: [] });
 
             expect(llamada()).toEqual({
-                url: `${API_URL}/informes/general?page=0&size=100`,
+                url: `${API_URL}/informes/mis-servicios?page=0&size=100`,
                 method: 'GET',
                 auth: 'Bearer jwt-abc',
                 body: undefined,

@@ -17,5 +17,6 @@ export const finalizar = (idServicio, dni) =>
 export const cancelar = (idServicio, dni) =>
     cambiarEstadoServicio('/servicio/cancelarServicio', idServicio, dni, 'Cancelado');
 
-export const historial = ({ page = 0, size = 100 } = {}) =>
-    apiRequest('/informes/general', { query: { page, size } });
+// Rides of the driver in the JWT. /informes/general is reserved for the panel.
+export const misServicios = ({ page = 0, size = 100 } = {}) =>
+    apiRequest('/informes/mis-servicios', { query: { page, size } });

@@ -24,6 +24,12 @@ export const setUnauthorizedHandler = (handler) => {
     unauthorizedHandler = handler;
 };
 
+// Ends the session for any channel that learns the token was rejected
+// (an HTTP 401 here, or a STOMP ERROR in useServicioSocket).
+export const notifyUnauthorized = (message) => {
+    if (unauthorizedHandler) unauthorizedHandler(message);
+};
+
 const buildUrl = (path, query) => {
     const url = `${API_URL}${path}`;
     if (!query) return url;
@@ -77,8 +83,8 @@ export const apiRequest = async (
 
     if (!response.ok) {
         const message = data?.mensaje || data?.message || `Error ${response.status}`;
-        if (response.status === 401 && auth && unauthorizedHandler) {
-            unauthorizedHandler(message);
+        if (response.status === 401 && auth) {
+            notifyUnauthorized(message);
         }
         throw new ApiError(message, { status: response.status, data });
     }

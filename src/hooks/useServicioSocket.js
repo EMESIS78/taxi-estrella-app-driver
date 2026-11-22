@@ -5,6 +5,7 @@ import { calcularDistanciaKm } from '../utils/geolocation';
 import { geocodeAddress } from '../services/googleMapsService';
 import { API_URL } from '@env';
 import { getToken } from '../services/tokenStore';
+import { notifyUnauthorized } from '../services/apiClient';
 
 export const useServicioSocket = (location, setNuevoServicio, nuevoServicio, setServicioTomado) => {
     // The GPS watcher emits a new location object every ~2s and the pending
@@ -66,7 +67,14 @@ export const useServicioSocket = (location, setNuevoServicio, nuevoServicio, set
                 });
             },
             onStompError: frame => {
-                console.error('💥 Error STOMP:', frame.headers['message']);
+                console.error('💥 Error STOMP:', frame.headers['message'], frame.body);
+                // The backend sends a stable "No autenticado" when the token is
+                // expired or the session moved to another device: reconnecting
+                // with the same token would fail forever.
+                if (frame.headers['message'] === 'No autenticado') {
+                    stompClient.deactivate();
+                    notifyUnauthorized(frame.body);
+                }
             },
         });
 

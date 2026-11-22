@@ -4,10 +4,12 @@ import { useServicioSocket } from '../useServicioSocket';
 import SockJS from 'sockjs-client';
 import { geocodeAddress } from '../../services/googleMapsService';
 import { getToken } from '../../services/tokenStore';
+import { notifyUnauthorized } from '../../services/apiClient';
 
 jest.mock('sockjs-client', () => jest.fn());
 jest.mock('@stomp/stompjs', () => ({ Client: jest.fn() }));
 jest.mock('../../services/tokenStore', () => ({ getToken: jest.fn() }));
+jest.mock('../../services/apiClient', () => ({ notifyUnauthorized: jest.fn() }));
 jest.mock('../../services/googleMapsService', () => ({ geocodeAddress: jest.fn() }));
 
 // The GPS watcher pushes a brand new location object roughly every 2 seconds.
@@ -41,6 +43,7 @@ const renderSocket = (initialProps, setNuevoServicio, setServicioTomado) =>
 describe('useServicioSocket', () => {
     beforeEach(() => {
         clients = [];
+        notifyUnauthorized.mockClear();
         Client.mockImplementation((config) => {
             const client = fakeClient(config);
             clients.push(client);
@@ -178,6 +181,29 @@ describe('useServicioSocket', () => {
 
         expect(SockJS).toHaveBeenCalledTimes(2);
         expect(SockJS).toHaveBeenCalledWith(expect.stringMatching(/\/ws$/));
+    });
+
+    it('stops reconnecting and ends the session when the backend rejects the token', () => {
+        renderSocket({ location: locationAt(0), nuevoServicio: null }, jest.fn(), jest.fn());
+        const client = clients[0];
+
+        client.config.onStompError({
+            headers: { message: 'No autenticado' },
+            body: 'La sesion fue cerrada o iniciada en otro dispositivo',
+        });
+
+        expect(client.deactivate).toHaveBeenCalledTimes(1);
+        expect(notifyUnauthorized).toHaveBeenCalledWith('La sesion fue cerrada o iniciada en otro dispositivo');
+    });
+
+    it('keeps reconnecting after a STOMP error that is not about the token', () => {
+        renderSocket({ location: locationAt(0), nuevoServicio: null }, jest.fn(), jest.fn());
+        const client = clients[0];
+
+        client.config.onStompError({ headers: { message: 'Error interno' }, body: 'Ocurrio un error inesperado' });
+
+        expect(client.deactivate).not.toHaveBeenCalled();
+        expect(notifyUnauthorized).not.toHaveBeenCalled();
     });
 
     it('closes the connection on unmount', () => {

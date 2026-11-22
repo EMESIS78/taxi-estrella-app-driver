@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { geocodeAddress, calcularDistanciaKm } from '../utils/geolocation';
+import { calcularDistanciaKm } from '../utils/geolocation';
+import { geocodeAddress } from '../services/googleMapsService';
 import { API_URL } from '@env';
 import { getToken } from '../services/tokenStore';
 

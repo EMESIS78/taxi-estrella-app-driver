@@ -1,14 +1,4 @@
-import Geocoder from 'react-native-geocoding';
-import { GOOGLE_API_KEY } from '@env';
-import polyline from '@mapbox/polyline';
-
-Geocoder.init(GOOGLE_API_KEY);
-
-export const geocodeAddress = async (address) => {
-    const json = await Geocoder.from(address);
-    const location = json.results[0].geometry.location;
-    return { latitude: location.lat, longitude: location.lng };
-};
+// Pure geometry helpers. Google Maps calls live in src/services/googleMapsService.js.
 
 export const calcularDistanciaKm = (coord1, coord2) => {
     const R = 6371;
@@ -18,38 +8,6 @@ export const calcularDistanciaKm = (coord1, coord2) => {
     const lat2 = coord2.latitude * Math.PI / 180;
     const a = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-};
-
-// Routes API (computeRoutes). The legacy Directions API can no longer be
-// enabled on new Google Cloud projects.
-const ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
-
-const toLatLng = ({ latitude, longitude }) => ({ location: { latLng: { latitude, longitude } } });
-
-export const getRutaGoogleMaps = async (origen, destino) => {
-    const response = await fetch(ROUTES_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': GOOGLE_API_KEY,
-            // Ask only for the polyline: Google bills and sizes the response by field mask.
-            'X-Goog-FieldMask': 'routes.polyline.encodedPolyline',
-        },
-        body: JSON.stringify({
-            origin: toLatLng(origen),
-            destination: toLatLng(destino),
-            travelMode: 'DRIVE',
-        }),
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data?.error?.message || `Routes API respondió ${response.status}`);
-    }
-
-    const encoded = data?.routes?.[0]?.polyline?.encodedPolyline;
-    if (!encoded) return [];
-    return polyline.decode(encoded).map(([lat, lng]) => ({ latitude: lat, longitude: lng }));
 };
 
 export const calcularBearing = (origen, destino) => {

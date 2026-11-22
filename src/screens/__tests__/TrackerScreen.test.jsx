@@ -5,7 +5,7 @@ import { Client } from '@stomp/stompjs';
 import TrackerScreen from '../TrackerScreen';
 import { AuthContext } from '../../context/Authcontext';
 import { useLiveLocation } from '../../hooks/useLiveLocation';
-import { geocodeAddress, getRutaGoogleMaps } from '../../utils/geolocation';
+import { geocodeAddress, getRutaGoogleMaps } from '../../services/googleMapsService';
 import useEnviarUbicacionConductor from '../../hooks/useEnviarUbicacionConductor';
 import * as servicioService from '../../services/servicioService';
 import * as conductorService from '../../services/conductorService';
@@ -26,8 +26,8 @@ jest.mock('../../services/servicioService', () => ({
     cancelar: jest.fn(),
 }));
 jest.mock('../../services/conductorService', () => ({ cambiarEstado: jest.fn() }));
-jest.mock('../../utils/geolocation', () => ({
-    ...jest.requireActual('../../utils/geolocation'),
+jest.mock('../../services/googleMapsService', () => ({
+    ...jest.requireActual('../../services/googleMapsService'),
     geocodeAddress: jest.fn(),
     getRutaGoogleMaps: jest.fn(),
 }));

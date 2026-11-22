@@ -2,16 +2,13 @@ import { act, renderHook } from '@testing-library/react-native';
 import { Client } from '@stomp/stompjs';
 import { useServicioSocket } from '../useServicioSocket';
 import SockJS from 'sockjs-client';
-import { geocodeAddress } from '../../utils/geolocation';
+import { geocodeAddress } from '../../services/googleMapsService';
 import { getToken } from '../../services/tokenStore';
 
 jest.mock('sockjs-client', () => jest.fn());
 jest.mock('@stomp/stompjs', () => ({ Client: jest.fn() }));
 jest.mock('../../services/tokenStore', () => ({ getToken: jest.fn() }));
-jest.mock('../../utils/geolocation', () => ({
-    ...jest.requireActual('../../utils/geolocation'),
-    geocodeAddress: jest.fn(),
-}));
+jest.mock('../../services/googleMapsService', () => ({ geocodeAddress: jest.fn() }));
 
 // The GPS watcher pushes a brand new location object roughly every 2 seconds.
 const locationAt = (step) => ({

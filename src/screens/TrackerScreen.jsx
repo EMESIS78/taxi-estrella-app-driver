@@ -6,7 +6,7 @@ import * as conductorService from '../services/conductorService';
 import { useLiveLocation } from '../hooks/useLiveLocation';
 import { useServicioSocket } from '../hooks/useServicioSocket';
 import useEnviarUbicacionConductor from '../hooks/useEnviarUbicacionConductor';
-import { geocodeAddress, getRutaGoogleMaps } from '../utils/geolocation';
+import { geocodeAddress, getRutaGoogleMaps } from '../services/googleMapsService';
 import { elegirAppNavegacion } from '../utils/navigationUtils';
 import EstadoConductor from '../components/EstadoConductor';
 import AlertaServicio from '../components/AlertaServicio';

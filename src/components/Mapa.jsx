@@ -3,11 +3,14 @@ import React, { useEffect } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { FontAwesome } from '@expo/vector-icons';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { darkMapStyle } from '../../constants/MapStyles';
 
-// False when the build has no GOOGLE_MAPS_ANDROID_KEY (see app.config.js).
-const mapsEnabled = Constants.expoConfig?.extra?.mapsEnabled === true;
+// Expo Go ships its own Google Maps key, so the map works there without
+// configuration. An own build needs GOOGLE_MAPS_ANDROID_KEY (see app.config.js).
+const isMapsEnabled = () =>
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+    Constants.expoConfig?.extra?.mapsEnabled === true;
 
 const Mapa = ({
     location,
@@ -34,7 +37,7 @@ const Mapa = ({
         }
     }, [location, heading, rotacionActiva]);
 
-    if (!mapsEnabled) {
+    if (!isMapsEnabled()) {
         const textColor = darkMode ? '#ecf0f1' : '#2c3e50';
         return (
             <View style={[styles.placeholder, { backgroundColor: darkMode ? '#2c3e50' : '#ecf0f1' }]}>

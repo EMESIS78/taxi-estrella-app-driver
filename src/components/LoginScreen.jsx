@@ -26,8 +26,8 @@ const LoginScreen = () => {
     const inputBorder = scheme === 'dark' ? '#95a5a6' : '#050505';
     const buttonColor = scheme === 'dark' ? '#2563eb' : '#fba257';
     const logo = scheme === 'dark'
-        ? require('../Public/icons/logo3copy.png')
-        : require('../Public/icons/logo4.png');
+        ? require('../Public/icons/1.png')
+        : require('../Public/icons/4.jpg');
 
     const handleLogin = async () => {
         if (!dni || !password) {

@@ -20,15 +20,36 @@ export const calcularDistanciaKm = (coord1, coord2) => {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 };
 
-export const getRutaGoogleMaps = async (origen, destino) => {
-    const origin = `${origen.latitude},${origen.longitude}`;
-    const destination = `${destino.latitude},${destino.longitude}`;
-    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${GOOGLE_API_KEY}`;
+// Routes API (computeRoutes). The legacy Directions API can no longer be
+// enabled on new Google Cloud projects.
+const ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
-    const response = await fetch(url);
+const toLatLng = ({ latitude, longitude }) => ({ location: { latLng: { latitude, longitude } } });
+
+export const getRutaGoogleMaps = async (origen, destino) => {
+    const response = await fetch(ROUTES_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_API_KEY,
+            // Ask only for the polyline: Google bills and sizes the response by field mask.
+            'X-Goog-FieldMask': 'routes.polyline.encodedPolyline',
+        },
+        body: JSON.stringify({
+            origin: toLatLng(origen),
+            destination: toLatLng(destino),
+            travelMode: 'DRIVE',
+        }),
+    });
     const data = await response.json();
-    const points = polyline.decode(data.routes[0].overview_polyline.points);
-    return points.map(([lat, lng]) => ({ latitude: lat, longitude: lng }));
+
+    if (!response.ok) {
+        throw new Error(data?.error?.message || `Routes API respondió ${response.status}`);
+    }
+
+    const encoded = data?.routes?.[0]?.polyline?.encodedPolyline;
+    if (!encoded) return [];
+    return polyline.decode(encoded).map(([lat, lng]) => ({ latitude: lat, longitude: lng }));
 };
 
 export const calcularBearing = (origen, destino) => {

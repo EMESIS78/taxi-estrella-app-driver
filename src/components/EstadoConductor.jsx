@@ -39,7 +39,7 @@ const EstadoConductor = ({ onEstadoChange }) => {
 
         useEffect(() => {
         const cargarEstado = async () => {
-            const guardado = await AsyncStorage.getItem('estadoConductor');
+            const guardado = await AsyncStorage.getItem(conductorService.ESTADO_KEY);
             if (guardado) {
                 setEstadoActual(guardado);
                 onEstadoChange(guardado); // comunicarlo al padre
@@ -69,11 +69,10 @@ const EstadoConductor = ({ onEstadoChange }) => {
         if (!user?.dni) return;
 
         try {
-            await conductorService.actualizarEstado(user.dni, estado);
+            await conductorService.cambiarEstado(user.dni, estado);
             console.log(`Estado actualizado a: ${estado}`);
             setEstadoActual(estado);
             onEstadoChange(estado);
-            await AsyncStorage.setItem('estadoConductor', estado);
         } catch (err) {
             console.error('Error al actualizar estado:', err);
         }

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext, useRef } from 'react';
 import { View, useColorScheme, ActivityIndicator } from 'react-native';
 import { AuthContext } from '../context/Authcontext';
 import * as servicioService from '../services/servicioService';
+import * as conductorService from '../services/conductorService';
 import { useLiveLocation } from '../hooks/useLiveLocation';
 import { useServicioSocket } from '../hooks/useServicioSocket';
 import useEnviarUbicacionConductor from '../hooks/useEnviarUbicacionConductor';
@@ -76,6 +77,13 @@ const TrackerScreen = () => {
     const aceptarServicio = async () => {
         try {
             await servicioService.tomar(nuevoServicio.idServicio, user?.dni);
+
+            // A driver on a ride must stop receiving offers. The 8 s location
+            // update also carries this status, so a failed save catches up.
+            setEstadoActual('Ocupado');
+            conductorService.cambiarEstado(user?.dni, 'Ocupado').catch((err) =>
+                console.error('Error al marcar el conductor como Ocupado:', err.message)
+            );
 
             const partida = await geocodeAddress(nuevoServicio.puntoPartida);
             const destino = await geocodeAddress(nuevoServicio.puntoLlegada);

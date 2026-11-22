@@ -1,11 +1,14 @@
 import React from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Client } from '@stomp/stompjs';
 import TrackerScreen from '../TrackerScreen';
 import { AuthContext } from '../../context/Authcontext';
 import { useLiveLocation } from '../../hooks/useLiveLocation';
 import { geocodeAddress, getRutaGoogleMaps } from '../../utils/geolocation';
+import useEnviarUbicacionConductor from '../../hooks/useEnviarUbicacionConductor';
+import * as servicioService from '../../services/servicioService';
+import * as conductorService from '../../services/conductorService';
 
 jest.mock('sockjs-client', () => jest.fn());
 jest.mock('@stomp/stompjs', () => ({ Client: jest.fn() }));
@@ -17,6 +20,12 @@ jest.mock('../../hooks/useDistancias', () => ({
     useDistancias: () => ({ distanciaAPartida: null, distanciaADestino: null }),
 }));
 jest.mock('../../hooks/useEnviarUbicacionConductor', () => jest.fn());
+jest.mock('../../services/servicioService', () => ({
+    tomar: jest.fn(),
+    finalizar: jest.fn(),
+    cancelar: jest.fn(),
+}));
+jest.mock('../../services/conductorService', () => ({ cambiarEstado: jest.fn() }));
 jest.mock('../../utils/geolocation', () => ({
     ...jest.requireActual('../../utils/geolocation'),
     geocodeAddress: jest.fn(),
@@ -160,5 +169,51 @@ describe('TrackerScreen', () => {
 
         expect(geocodeAddress).not.toHaveBeenCalled();
         expect(getRutaGoogleMaps).not.toHaveBeenCalled();
+    });
+
+    const estadoEnviado = () => useEnviarUbicacionConductor.mock.calls.at(-1)[0].estado;
+
+    it('switches the driver to Ocupado when the ride is accepted', async () => {
+        servicioService.tomar.mockResolvedValue(null);
+        conductorService.cambiarEstado.mockResolvedValue(undefined);
+        renderTracker();
+        await emitirServicio();
+        expect(estadoEnviado()).toBe('Activo');
+
+        await act(async () => {
+            fireEvent.press(screen.getByText('Aceptar'));
+        });
+
+        await waitFor(() => expect(estadoEnviado()).toBe('Ocupado'));
+        expect(servicioService.tomar).toHaveBeenCalledWith(servicio.idServicio, user.dni);
+        expect(conductorService.cambiarEstado).toHaveBeenCalledWith(user.dni, 'Ocupado');
+    });
+
+    it('keeps the driver status when the backend rejects the ride', async () => {
+        servicioService.tomar.mockRejectedValue(Object.assign(new Error('Ya fue tomado'), { status: 409 }));
+        renderTracker();
+        await emitirServicio();
+
+        await act(async () => {
+            fireEvent.press(screen.getByText('Aceptar'));
+        });
+
+        await waitFor(() => expect(servicioService.tomar).toHaveBeenCalled());
+        expect(conductorService.cambiarEstado).not.toHaveBeenCalled();
+        expect(estadoEnviado()).toBe('Activo');
+    });
+
+    it('still switches to Ocupado locally when saving the status on the backend fails', async () => {
+        servicioService.tomar.mockResolvedValue(null);
+        conductorService.cambiarEstado.mockRejectedValue(new Error('Network'));
+        renderTracker();
+        await emitirServicio();
+
+        await act(async () => {
+            fireEvent.press(screen.getByText('Aceptar'));
+        });
+
+        // The 8 s location update carries the status, so the backend catches up.
+        await waitFor(() => expect(estadoEnviado()).toBe('Ocupado'));
     });
 });

@@ -216,4 +216,20 @@ describe('TrackerScreen', () => {
         // The 8 s location update carries the status, so the backend catches up.
         await waitFor(() => expect(estadoEnviado()).toBe('Ocupado'));
     });
+
+    it('lets the driver accept the next ride after a previous one was taken', async () => {
+        renderTracker();
+        await emitirServicio();
+        await act(async () => {
+            clients[0].handlers['/topic/servicio-tomado']({ body: String(servicio.idServicio) });
+        });
+
+        const siguiente = { ...servicio, idServicio: 78, nombreCliente: 'Rosa' };
+        await act(async () => {
+            await clients[0].handlers['/topic/servicios']({ body: JSON.stringify(siguiente) });
+        });
+
+        expect(screen.getByText('Aceptar')).toBeOnTheScreen();
+        expect(screen.queryByText('⚠️ Este servicio ya fue tomado por otro conductor.')).toBeNull();
+    });
 });

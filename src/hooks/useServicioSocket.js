@@ -40,6 +40,9 @@ export const useServicioSocket = (location, setNuevoServicio, nuevoServicio, set
                         const partidaCoords = await geocodeAddress(servicio.puntoPartida);
                         const distancia = calcularDistanciaKm(datosRef.current.location, partidaCoords);
                         if (distancia <= 3) {
+                            // A new offer starts untaken; otherwise a previous
+                            // "taken" notice would hide its Aceptar button.
+                            datosRef.current.setServicioTomado(false);
                             datosRef.current.setNuevoServicio(servicio);
                         } else {
                             console.log('🚫 Servicio fuera de rango:', distancia.toFixed(2), 'km');

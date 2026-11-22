@@ -1,11 +1,12 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Client } from '@stomp/stompjs';
 import TrackerScreen from '../TrackerScreen';
 import { AuthContext } from '../../context/Authcontext';
 import { useLiveLocation } from '../../hooks/useLiveLocation';
-import { geocodeAddress, getRutaGoogleMaps } from '../../services/googleMapsService';
+import { geocodeAddress, getRutaGoogleMaps, GoogleMapsError } from '../../services/googleMapsService';
 import useEnviarUbicacionConductor from '../../hooks/useEnviarUbicacionConductor';
 import * as servicioService from '../../services/servicioService';
 import * as conductorService from '../../services/conductorService';
@@ -273,5 +274,57 @@ describe('TrackerScreen', () => {
 
         expect(estadoEnviado()).toBe('Ocupado');
         expect(conductorService.cambiarEstado).not.toHaveBeenCalledWith(user.dni, 'Activo');
+    });
+
+    describe('failure alerts', () => {
+        beforeEach(() => {
+            jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+        });
+
+        it('tells the driver why accepting the ride failed', async () => {
+            servicioService.tomar.mockRejectedValue(new Error('El servicio ya fue asignado'));
+            renderTracker();
+            await emitirServicio();
+
+            await act(async () => {
+                fireEvent.press(screen.getByText('Aceptar'));
+            });
+
+            await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith(
+                'No se pudo aceptar el servicio',
+                'El servicio ya fue asignado'
+            ));
+            expect(controles().servicioActivo).toBeNull();
+        });
+
+        it('keeps an accepted ride active and warns when its route cannot be computed', async () => {
+            // The offer's distance check succeeds; geocoding after accepting fails.
+            geocodeAddress
+                .mockResolvedValueOnce(location)
+                .mockRejectedValue(new GoogleMapsError('ZERO_RESULTS', 'No se encontró la dirección "Plaza Mayor".'));
+            await aceptarOferta();
+
+            expect(controles().servicioActivo).toEqual(servicio);
+            expect(AsyncStorage.setItem).toHaveBeenCalledWith('servicioActivo', JSON.stringify(servicio));
+            expect(Alert.alert).toHaveBeenCalledWith(
+                'No se pudo calcular la ruta',
+                'No se encontró la dirección "Plaza Mayor". El servicio sigue aceptado.'
+            );
+        });
+
+        it.each([
+            ['finalizar', 'onFinalizar', 'No se pudo finalizar el servicio'],
+            ['cancelar', 'onCancelar', 'No se pudo cancelar el servicio'],
+        ])('tells the driver when %s fails and keeps the ride open', async (accion, handler, titulo) => {
+            await aceptarOferta();
+            acciones[accion].mockRejectedValue(new Error('No se pudo conectar con el servidor.'));
+
+            await act(async () => {
+                await controles()[handler]();
+            });
+
+            expect(Alert.alert).toHaveBeenCalledWith(titulo, 'No se pudo conectar con el servidor. Intenta nuevamente.');
+            expect(controles().servicioActivo).toEqual(servicio);
+        });
     });
 });

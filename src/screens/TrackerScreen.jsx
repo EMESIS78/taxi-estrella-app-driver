@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
-import { View, useColorScheme, ActivityIndicator } from 'react-native';
+import { View, useColorScheme, ActivityIndicator, Alert } from 'react-native';
 import { AuthContext } from '../context/Authcontext';
 import * as servicioService from '../services/servicioService';
 import * as conductorService from '../services/conductorService';
@@ -75,53 +75,59 @@ const TrackerScreen = () => {
     }, [location]);
 
     const aceptarServicio = async () => {
+        const servicio = nuevoServicio;
+        setNuevoServicio(null);
+
         try {
-            await servicioService.tomar(nuevoServicio.idServicio, user?.dni);
+            await servicioService.tomar(servicio.idServicio, user?.dni);
+        } catch (err) {
+            console.error('Error al aceptar servicio:', err.message);
+            Alert.alert('No se pudo aceptar el servicio', err.message);
+            return;
+        }
 
-            // A driver on a ride must stop receiving offers. The 8 s location
-            // update also carries this status, so a failed save catches up.
-            setEstadoActual('Ocupado');
-            conductorService.cambiarEstado(user?.dni, 'Ocupado').catch((err) =>
-                console.error('Error al marcar el conductor como Ocupado:', err.message)
-            );
+        // From here on the ride belongs to this driver, so it stays active even
+        // if the route cannot be drawn.
+        setServicioActivo(servicio);
+        await AsyncStorage.setItem('servicioActivo', JSON.stringify(servicio));
 
-            const partida = await geocodeAddress(nuevoServicio.puntoPartida);
-            const destino = await geocodeAddress(nuevoServicio.puntoLlegada);
+        // A driver on a ride must stop receiving offers. The 8 s location
+        // update also carries this status, so a failed save catches up.
+        setEstadoActual('Ocupado');
+        conductorService.cambiarEstado(user?.dni, 'Ocupado').catch((err) =>
+            console.error('Error al marcar el conductor como Ocupado:', err.message)
+        );
 
+        try {
+            const partida = await geocodeAddress(servicio.puntoPartida);
+            const destino = await geocodeAddress(servicio.puntoLlegada);
             setPartidaCoords(partida);
             setDestinoCoords(destino);
+            setMostrarBotonRuta(true);
+
             setRutaACamino(await getRutaGoogleMaps(location, partida));
             setRutaServicio(await getRutaGoogleMaps(partida, destino));
-
-            setMostrarBotonRuta(true);
-            setServicioActivo(nuevoServicio);
-            await AsyncStorage.setItem('servicioActivo', JSON.stringify(nuevoServicio));
         } catch (err) {
-            console.error('Error al aceptar servicio:', err);
-        } finally {
-            setNuevoServicio(null);
+            console.error('Error calculando la ruta:', err.message);
+            Alert.alert('No se pudo calcular la ruta', `${err.message} El servicio sigue aceptado.`);
         }
     };
 
-    const finalizarServicio = async () => {
+    // Finishing or cancelling keeps the ride open when the backend fails, so
+    // the driver can retry.
+    const cerrarServicio = async (accion, titulo) => {
         if (!servicioActivo) return;
         try {
-            await servicioService.finalizar(servicioActivo.idServicio, user?.dni);
+            await accion(servicioActivo.idServicio, user?.dni);
             resetServicio();
         } catch (err) {
-            console.error('Error finalizando servicio:', err);
+            console.error(`${titulo}:`, err.message);
+            Alert.alert(titulo, `${err.message} Intenta nuevamente.`);
         }
     };
 
-    const cancelarServicio = async () => {
-        if (!servicioActivo) return;
-        try {
-            await servicioService.cancelar(servicioActivo.idServicio, user?.dni);
-            resetServicio();
-        } catch (err) {
-            console.error('Error cancelando servicio:', err);
-        }
-    };
+    const finalizarServicio = () => cerrarServicio(servicioService.finalizar, 'No se pudo finalizar el servicio');
+    const cancelarServicio = () => cerrarServicio(servicioService.cancelar, 'No se pudo cancelar el servicio');
 
     const resetServicio = async () => {
         setRutaACamino([]);
